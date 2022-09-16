@@ -77,7 +77,7 @@ struct vrna_param_s {
   int       MLintern[NBPAIRS + 1];
   int       MLclosing;
   // Pseudoknot additions
-  int       PKinit;
+  int       PS_penalty;    //960; 		//exterior pseudoloop initiation penalty (9.6 Kcal/mol)
   int       PSM_penalty;    // Pseudoknot in a multiloop
   int       PSP_penalty;    // Pseudoknot in a pseudoloop
   int       PB_penalty;     // Band Penalty
@@ -88,6 +88,10 @@ struct vrna_param_s {
   int       ap_penalty;     // Introducing a multiloop that spans a band
   int       bp_penalty;     // Base pair in multiloop that spans a band
   int       cp_penalty;     // Unpaired base in a multiloop that spans a band
+  int       a_penalty;     //The newest value is from DP09 //misc.multi_offset;//340;		//penalty for introducing a multiloop (3.4 Kcal/mol)
+  int       b_penalty;     //The newest value is from DP09 //misc.multi_helix_penalty; //40;			//penalty for base pair in a multiloop (0.4 Kcal/mol)
+  int       c_penalty;     //The newest value is from DP09 //misc.multi_free_base_penalty; //0;			//penalty for un-paired base in a multi-loop
+  //
   //
   int       TerminalAU;
   int       DuplexInit;

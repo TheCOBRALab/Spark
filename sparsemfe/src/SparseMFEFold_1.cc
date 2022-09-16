@@ -75,6 +75,7 @@ V(i,j) + b  < min {
 #include <string>
 #include <cassert>
 #include <numeric>
+#include <tuple>
 
 #include "base.hh"
 #include "trace_arrow.hh"
@@ -82,6 +83,7 @@ V(i,j) + b  < min {
 extern "C" {
 #include "ViennaRNA/pair_mat.h"
 #include "ViennaRNA/loops/all.h"
+#include "ViennaRNA/params/io.h"
 }
 
 #include "cmdline.hh"
@@ -91,8 +93,29 @@ extern "C" {
 
 
 typedef unsigned short int cand_pos_t;
+
+struct triplet
+{
+    cand_pos_t first; 
+    energy_t second;
+    energy_t third;
+	triplet(){
+		first = 1;
+		second = 2;
+		third = 3;
+	}
+	triplet(cand_pos_t x, energy_t y , energy_t z){
+		first = x;
+		second = y;
+		third = z;
+	}
+};
+
 typedef std::pair<cand_pos_t,energy_t> cand_entry_t;
 typedef std::vector< cand_entry_t > cand_list_t;
+
+typedef triplet cand_entry_td1;
+typedef std::vector< cand_entry_td1 > cand_list_td1;
 
 class SparseMFEFold;
 
@@ -173,6 +196,7 @@ public:
 	std::vector<energy_t> WI_;
 	std::vector<energy_t> dwib1_; // WI from 1 iteration ago
 	std::vector<energy_t> WIP_;
+	std::vector<energy_t> dwip1_; // WIP from 1 iteration ago
 
 
 	bool mark_candidates_;
@@ -180,8 +204,12 @@ public:
 
 	TraceArrows ta_;
 	
-	std::vector< cand_list_t > CL_;
+	std::vector< cand_list_td1 > CL_;
+	std::vector< cand_list_t > CLVP_j_;
+	std::vector< cand_list_t > CLVP_i_;
+	std::vector< cand_list_t > CLVPP_;
 	std::vector< cand_list_t > CLWMB_;
+	std::vector< cand_list_t > CLBE_;
 
 	// Holds restricted info
 	sparse_features *fres;
@@ -201,7 +229,7 @@ public:
 
 	// compare candidate list entries by keys (left index i) in descending order
 	struct {
-	bool operator ()(const cand_entry_t &x, size_t y) const {
+	bool operator ()(const cand_entry_td1 &x, size_t y) const {
 		return x.first > y;
 	}
 	}
@@ -239,13 +267,18 @@ public:
 	WMB_.resize(n_+1,INF);
 	dwmbi_.resize(n_+1,INF);
 	WMBP_.resize(n_+1,INF);
-	WI_.resize(n_+1,INF);
-	dwib1_.resize(n_+1,INF);
+	WI_.resize(n_+1,0);
+	dwib1_.resize(n_+1,0);
 	WIP_.resize(n_+1,INF);
+	dwip1_.resize(n_+1,INF);
 
 	// init candidate lists
 	CL_.resize(n_+1);
 	CLWMB_.resize(n_+1);
+	CLVP_j_.resize(n_+1);
+	CLVP_i_.resize(n_+1);
+	CLVPP_.resize(n_+1);
+	CLBE_.resize(n_+1);
 
 	resize(ta_,n_+1);
 
@@ -298,7 +331,7 @@ energy_t HairpinE(auto const& seq, auto const& S, auto const& S1, auto const& pa
 * @param dmli2 WM2 from two iterations ago
 * @param n Length
 */
-void rotate_arrays(auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto &WMB, auto &dwmbi, auto &WI, auto dwib1, auto n){
+void rotate_arrays( auto const &WM2, auto &dmli1, auto &dmli2, auto const &WMB, auto &dwmbi, auto const &WI, auto &dwib1, auto const &WIP, auto &dwip1, auto n){
 	
 
 	for (int j = 1; j <= n; j++){
@@ -306,6 +339,7 @@ void rotate_arrays(auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto &WMB, aut
 		dmli1[j] = WM2[j];
 		dwmbi[j] = WMB[j];
 		dwib1[j] = WI[j];
+		dwip1[j] = WIP[j];
 	} 
 }
 
@@ -351,7 +385,6 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 			* ML pair D0
 			*  new closing pair (i,j) with mb part [i+1,j-1]  
 			*/
-			tt  = pair[S[j]][S[i]];
 			if ((fres[i].pair <-1 && fres[j].pair <-1) || (fres[i].pair == j and fres[j].pair == i)) {
         		e = dmli1[j - 1];
 
@@ -411,15 +444,15 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 			}
 			e   = MIN2(e, en);
       		break;
-		// case 3:
-		// 	if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) {
-		// 		e = dmli1[j - 1];
+		case 0:
+			if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) {
+				e = dmli1[j - 1];
 
-		// 		if (e != INF) {
-		// 			e += E_MLstem(tt, -1, -1, params) + params->MLclosing;
-		// 		}
-		// 	}
-		// 	break; 
+				if (e != INF) {
+					e += E_MLstem(tt, -1, -1, params) + params->MLclosing;
+				}
+			}
+			break;  
 	}
 
 
@@ -464,8 +497,8 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
 
 	if(params->model_details.dangles == 1){
 		int mm5 = S[i], mm3 = S[j];
-		if ((fres[i+1].pair < -1 && fres[j].pair < -1) || (fres[i+1].pair == j && fres[j].pair == i+1 && fres[i].pair <-1)) {
-      		en = vk1j;
+		if (((fres[i].pair < -1 && fres[j].pair < -1) || (fres[i].pair == j && fres[j].pair == i)) && fres[i+1].pair < -1) {
+      		en = (j-(i+1) >TURN+1) ? vk1j : INF;
       		if (en != INF) {
         		en += params->MLbase;
 
@@ -476,8 +509,8 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
       		}
     	}
 
-		if ((fres[i].pair < -1 && fres[j-1].pair < -1) || (fres[i].pair == j-1 && fres[j-1].pair == i && fres[j].pair <-1)) {
-      		en = vkj1; 
+		if (((fres[i].pair < -1 && fres[j].pair < -1) || (fres[i].pair == j && fres[j].pair == i)) && fres[j-1].pair < -1) {
+      		en = (j-1-i>TURN+1) ? vkj1 : INF; 
       		if (en != INF) {
        			en += params->MLbase;
 
@@ -488,8 +521,8 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
       		}
     	}
 
-    	if ((fres[i+1].pair < -1 && fres[j-1].pair < -1) || (fres[i+1].pair == j-1 && fres[j-1].pair == i+1 && fres[j].pair < -1 && fres[i].pair < -1)) {
-      		en = vk1j1; // i+1 j-1
+    	if (((fres[i].pair < -1 && fres[j].pair < -1) || (fres[i].pair == j && fres[j].pair == i)) && fres[i+1].pair < -1 && fres[j-1].pair<-1) {
+      		en = (j-1-(i+1)>TURN+1) ? vk1j1 : INF; // i+1 j-1
       		if (en != INF) {
         		en += 2 * params->MLbase;
 
@@ -507,7 +540,43 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
 }
 
 
-auto const recompute_WIP(auto &WI, auto const &CL, auto const &CLWMB, auto const& S, auto const &params, auto const& n, size_t i, size_t max_j, sparse_features *fres) {
+auto const recompute_WI(auto &WI, auto const &CL, auto const &CLWMB, auto const& S, auto const &params, auto const& n, size_t i, size_t max_j, sparse_features *fres) {
+	
+
+	assert(i>=1);
+	assert(max_j<=n);
+
+	
+	
+	for ( size_t j=i; j<=max_j; j++ ) {
+		energy_t wi = 0;
+		bool paired;
+		#pragma omp parallel for num_threads(6);
+		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
+			size_t k = it->first;
+			if(k<i) continue;
+			paired = (fres[k].pair == j && fres[j].pair == k);
+			const energy_t v_kj = it->second + params->bp_penalty;
+			wi = std::min( wi, WI[k-1]  + v_kj );
+			if(paired) break;
+		}
+
+		for ( auto it = CLWMB[j].begin();CLWMB[j].end()!=it && it->first>=i ; ++it ) {
+			if(paired) continue;
+			size_t k = it->first;
+			if(k<i) continue;
+			paired = (fres[k].pair == j && fres[j].pair == k);
+			const energy_t wmb_kj = it->second + params->bp_penalty + params->PPS_penalty;
+			wi = std::min( wi, WI[k-1]  + wmb_kj );	
+		}
+		if(wi == 0) WI[j] = (j-i)*params->PUP_penalty;
+		WI[j] = wi;
+		
+	}
+	return WI;
+}
+
+auto const recompute_WIP(auto &WIP, auto const &CL, auto const &CLWMB, auto const& S, auto const &params, auto const& n, size_t i, size_t max_j, sparse_features *fres) {
 	
 
 	assert(i>=1);
@@ -521,6 +590,7 @@ auto const recompute_WIP(auto &WI, auto const &CL, auto const &CLWMB, auto const
 		#pragma omp parallel for num_threads(6);
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			size_t k = it->first;
+			if(k<i) continue;
 			paired = (fres[k].pair == j && fres[j].pair == k);
 			const energy_t v_kj = it->second + params->bp_penalty;
 			bool can_pair = true;
@@ -532,22 +602,23 @@ auto const recompute_WIP(auto &WI, auto const &CL, auto const &CLWMB, auto const
 		
 			}
 			if(can_pair) wip = std::min( wip, static_cast<energy_t>(params->MLbase*(k-i)) + v_kj );
-			wip = std::min( wip, WI[k-1]  + v_kj );
+			wip = std::min( wip, WIP[k-1]  + v_kj );
 			if(paired) break;
 		}
 
 		for ( auto it = CLWMB[j].begin();CLWMB[j].end()!=it && it->first>=i ; ++it ) {
 			if(paired) continue;
 			size_t k = it->first;
+			if(k<i) continue;
 			paired = (fres[k].pair == j && fres[j].pair == k);
 			const energy_t wmb_kj = it->second + params->bp_penalty + params->PPS_penalty;
 			wip = std::min( wip, static_cast<energy_t>(params->MLbase*(k-i)) + wmb_kj );
-			wip = std::min( wip, WI[k-1]  + wmb_kj );	
+			wip = std::min( wip, WIP[k-1]  + wmb_kj );	
 		}
-		if(fres[j].pair<0) wip = std::min(wip, WI[j-1] + params->MLbase);
-		WI[j] = wip;
+		if(fres[j].pair<0) wip = std::min(wip, WIP[j-1] + params->MLbase);
+		WIP[j] = wip;
 	}
-	return WI;
+	return WIP;
 }
 
 
@@ -584,7 +655,7 @@ auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto cons
 			size_t k = it->first;
 			paired = (fres[k].pair == j && fres[j].pair == k);
 			int mm5 = S[k+1];
-			const energy_t v_kj = E_MLStem(it->second,INF,INF,INF,WM,CL,S,params,k,j,n,fres);
+			const energy_t v_kj = it->third;
 			bool can_pair = true;
 			for(int m = i;m<k;++m){
 				if(fres[m].pair>-1){
@@ -640,7 +711,7 @@ auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto co
 			size_t k = it->first;
 			paired = (fres[k].pair == j && fres[j].pair == k);
 			int mm5 = S[k+1];
-			energy_t v_kl = E_MLStem(it->second,INF,INF,INF,WM,CL,S,params,k,j,n,fres);
+			energy_t v_kl = it->third;
 			wm2 = std::min( wm2, WM[k-1]  + v_kl );
 			if(paired) break;
 		}
@@ -662,7 +733,7 @@ auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto co
  * @return whether (i,j) is candidate for W/WM splits 
  */
 bool is_candidate(auto const& CL,auto const& cand_comp,size_t i, size_t j) {
-	const cand_list_t &list = CL[j];
+	const cand_list_td1 &list = CL[j];
 
 	auto it = std::lower_bound(list.begin(),list.end(),i,cand_comp);
 
@@ -837,7 +908,7 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 	for ( auto it=CL[j].begin();CL[j].end() != it && it->first>=i;++it ) {
 		const size_t k = it->first;
 		int mm5 = S[k+1];
-		const energy_t v_kj = E_MLStem(it->second,INF,INF,INF,WM,CL,S,params,k,j,n,fres);
+		const energy_t v_kj = it->third;
 		if ( e == WM[k-1] + v_kj ) {
 		// no recomp, same i
 		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1],fres);
@@ -889,7 +960,7 @@ void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &str
 	for ( auto it=CL[j].begin();CL[j].end() != it  && it->first>=i+TURN+1;++it ) {
 		size_t k = it->first;
 		int mm5 = S[k+1];
-		const energy_t v_kj = E_MLStem(it->second,INF,INF,INF,WM,CL,S,params,k,j,n,fres);
+		const energy_t v_kj = it->third;
 		if ( e == WM[k-1] + v_kj ) {
 		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1],fres);
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,j,it->second,fres);
@@ -937,9 +1008,20 @@ energy_t ILoopE(auto const& S, auto const& S1, auto const& params, int ptype_clo
 * @param i start
 * @param j end
 * @param e energy of candidate "V(i,j)"
+* @param ml energy + ml contribution
+*/
+void register_candidatetd1(auto &CL, size_t i, size_t j, energy_t e, energy_t ml) {
+	// assert(i<=j+TURN+1);
+	CL[j].push_back( cand_entry_td1(i, e, ml) );
+}
+/**
+* @brief Register a candidate
+* @param i start
+* @param j end
+* @param e energy of candidate "V(i,j)"
 */
 void register_candidate(auto &CL, size_t i, size_t j, energy_t e) {
-	assert(i<=j+TURN+1);
+	// assert(i<=j+TURN+1);
 	CL[j].push_back( cand_entry_t(i, e) );
 }
 /**
@@ -1100,34 +1182,34 @@ int is_weakly_closed(sparse_features* fres, int *B, int *b, int i, int j){
     }
 }
 
-std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, auto const& S, auto const& params, int i, int j, auto &km1, int n, sparse_features *fres) {
-	energy_t wm_split = INF;
-	energy_t wm2_split = INF;
-	int mm3 = S[j-1];
+// std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, auto const& S, auto const& params, int i, int j, auto &km1, int n, sparse_features *fres) {
+// 	energy_t wm_split = INF;
+// 	energy_t wm2_split = INF;
+// 	int mm3 = S[j-1];
 
-	for ( auto const [key,val] : CL) {
-		size_t k = key;
-		int mm5 = S[k+1];
-		bool paired = (fres[k].pair == j && fres[j].pair == k);
-		energy_t v_kj = E_MLStem(val,INF,INF,INF,WM,CL,S,params,k,j,n,fres);
-		wm_split = std::min( wm_split, WM[k-1] + v_kj );
-		bool can_pair = true;
-		// checks to see if the unpaired bases till k can happen
-		for(int m = i;m<k;++m){
-			if(fres[m].pair>-1) {
-				can_pair = false;
-				break;
-			}
-		}
-		if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
-		wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
-		if(wm2_split==WM[k-1] + v_kj) km1 = k-1;
+// 	for ( auto const [key,val] : CL) {
+// 		size_t k = key;
+// 		int mm5 = S[k+1];
+// 		bool paired = (fres[k].pair == j && fres[j].pair == k);
+// 		energy_t v_kj = E_MLStem(val,INF,INF,INF,WM,CL,S,params,k,j,n,fres);
+// 		wm_split = std::min( wm_split, WM[k-1] + v_kj );
+// 		bool can_pair = true;
+// 		// checks to see if the unpaired bases till k can happen
+// 		for(int m = i;m<k;++m){
+// 			if(fres[m].pair>-1) {
+// 				can_pair = false;
+// 				break;
+// 			}
+// 		}
+// 		if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
+// 		wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
+// 		if(wm2_split==WM[k-1] + v_kj) km1 = k-1;
 		
-		if(paired) return std::make_pair( wm_split, wm2_split );
-	}	
-	return std::make_pair( wm_split, wm2_split );
+// 		if(paired) return std::make_pair( wm_split, wm2_split );
+// 	}	
+// 	return std::make_pair( wm_split, wm2_split );
 
-}
+// }
 /**
  * @brief Evaluates whether a pairing can occur based on the restriction
  * 
@@ -1139,7 +1221,7 @@ std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, aut
  * @param multiloop Boolean to check if we are looking at WM and WM2
  * @return whether i and j can be non INF 
  */
-bool evaluate_restriction(int i, int j, sparse_features *fres, bool multiloop){
+bool evaluate_restriction(int i, int j, sparse_features *fres){
 	bool evaluate = 1;
 	if(fres[i].in_pair>fres[j].in_pair) evaluate = 0;
 
@@ -1150,53 +1232,154 @@ bool evaluate_restriction(int i, int j, sparse_features *fres, bool multiloop){
 	}
 	// Resolves the cases where k-1 is the end of a restricted pair but i is less than the beginning of the k-1 pair
 	// And where i is the beginning of the restricted pair but k-1 is past the end of the pair 
-	if(multiloop){
+	// if(multiloop){
 		if((fres[j].pair >0 && i<fres[j].pair && j>fres[j].pair) || (fres[i].pair>0 && j > fres[i].pair && i<fres[i].pair)) evaluate = 1;
-	}
+	// }
 	return evaluate;
 }
 
-energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &CLWMB, auto const& S, auto const& S1, auto const& params, auto &ta, auto &W, auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto &VP, auto &WMB, auto &dwmbi,auto &WMBP,auto &WI,auto &dwibi,auto &WIP, auto const& n, auto const& garbage_collect, sparse_features *fres, int *B, int *b) {
+energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &CLWMB,auto &CLVP_j,auto &CLVP_i,auto &CLVPP, auto &CLBE, auto const& S, auto const& S1, auto const& params, auto &ta, auto &W, auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto &VP, auto &WMB, auto &dwmbi,auto &WMBP,auto &WI,auto &dwibi,auto &WIP, auto &dwip1, auto const& n, auto const& garbage_collect, sparse_features *fres, int *B, int *b) {
 	for (size_t i=n; i>0; --i) {
 		int si1 = (i>1) ? S[i-1] : -1;
+		int mm5 = S[i+1];
+		energy_t VP_i_split = INF;
+		for(size_t j=i;j<i+TURN+1 && j<=n ;++j){
+			WI[j] = (j-i+1)*params->PUP_penalty;
+		}
 		for ( size_t j=i+TURN+1; j<=n; j++ ) {
 
 			int sj1 = (j<n) ? S[j+1] : -1;
-			int mm5 = S[i+1];
+			
 			int mm3 = S[j-1];
-			bool evaluate = evaluate_restriction(i,j,fres,false);
+			bool evaluate = evaluate_restriction(i,j,fres);
 			// ------------------------------
 			// W: split case
 			bool pairedkj = 0;
 			energy_t w_split = INF;
-			for ( auto const [key,val] : CL[j] ) {
+			energy_t wi_split = INF;
+			energy_t wip_split = INF;
+			energy_t wm_split = INF;
+			energy_t wm2_split = INF;
+			int km1 = n;
+			for ( auto const [key,val, val_ml] : CL[j] ) {
+				
 				size_t k=key;
+				if(!evaluate_restriction(i,k-1,fres)) continue;
 				int sk1 = (k>1) ? S[k-1] : -1;
 				bool unpairedkj = (fres[k].pair<-1 && fres[j].pair<-1);
 				pairedkj = (fres[k].pair == j && fres[j].pair == k);
-				energy_t v_kj = (unpairedkj || pairedkj) ? val + vrna_E_ext_stem(pair[S[k]][S[j]],sk1,sj1,params) : INF;
+
+				bool can_pair = true;
+
+				
+				// checks to see if the unpaired bases till k can happen
+				for(int m = i;m<k;++m){
+					if(fres[m].pair>-1) {
+						can_pair = false;
+						break;
+					}
+				}
+				
 				if(pairedkj){
+					
+					// WM Portion
+					energy_t v_kj = val_ml;
+					wm_split =  WM[k-1] + v_kj;
+					if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
+					wm2_split = WM[k-1] + v_kj;
+					km1 = k-1;
+					//
+
+					// WI portion
+					v_kj = val + params->PPS_penalty;
+					wi_split = WI[k] + v_kj;
+					//
+
+					// WIP portion
+					v_kj = val + params->bp_penalty;
+					wip_split = WIP[k]+v_kj;
+					if(can_pair) wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*params->cp_penalty) +v_kj);
+					//
+
+
+					// W portion
+					v_kj = (unpairedkj || pairedkj) ? val + vrna_E_ext_stem(pair[S[k]][S[j]],sk1,sj1,params) : INF;
 					w_split = W[k-1] + v_kj; 
 					break;
 				}else{
+					//WM portion
+					energy_t v_kj = E_MLStem(val,INF,INF,INF,WM,CL,S,params,k,j,n,fres);
+					wm_split = std::min( wm_split, WM[k-1] + v_kj );
+					if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
+					wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
+					if(wm2_split==WM[k-1] + v_kj) km1 = k-1;
+					//
+
+					// WI portion
+					v_kj = val + params->PPS_penalty;
+					wi_split = std::min(wi_split,WI[k] + v_kj);
+					//
+
+					// WIP portion
+					v_kj = val + params->bp_penalty;
+					wip_split = std::min(wip_split,WIP[k]+v_kj);
+					if(can_pair) wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*params->cp_penalty) +v_kj);
+					//
+
+					// W portion
+					v_kj = (unpairedkj || pairedkj) ? val + vrna_E_ext_stem(pair[S[k]][S[j]],sk1,sj1,params) : INF;
 					w_split = std::min( w_split, W[k-1] + v_kj );
 				}
+				//
+			}			 
+			for (auto const [key,val] : CLWMB[j] ) {
+				
+				if(pairedkj) break;
+
+				size_t k = key;
+				bool can_pair = true;
+
+				for(int m = i;m<k;++m){
+					if(fres[m].pair>-1) {
+						can_pair = false;
+						break;
+					}
+				}
+				
+				
+				// For W
+				energy_t wmb_kj = val + params->PS_penalty;
+				w_split = std::min( w_split, W[k-1] + wmb_kj );	
+				// For WM
+				wmb_kj = val + params->PSM_penalty + params->b_penalty;
+				wm_split = std::min(wm_split, WM[k-1] + wmb_kj);
+				if(can_pair) wm_split = std::min(wm_split,static_cast<energy_t>((k-i)*params->cp_penalty) +wmb_kj);
+				wm2_split = std::min( wm2_split, WM[k-1] + wmb_kj );
+				// For WI
+				wmb_kj = val + params->PSP_penalty + params->PPS_penalty;
+				wi_split = std::min(wi_split,WI[k] + wmb_kj);
+				// For WIP
+				wmb_kj = val + params->PSM_penalty + params->bp_penalty;
+				wip_split = std::min(wip_split,WIP[k]+wmb_kj);
+				if(can_pair) wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*params->cp_penalty) +wmb_kj);
 			}
-			if(fres[j].pair<0) w_split = std::min(w_split,W[j-1]);
+			if(fres[j].pair<0){
+			 	wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
+			 	wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
+				w_split = std::min(w_split,W[j-1]);
+				wi_split = std::min(wi_split,WI[j-1] + params->PUP_penalty);
+				wip_split = std::min(wip_split,WIP[j-1] + params->cp_penalty);
+			}
+			
 
 			// ------------------------------
 			// WM and WM2: split cases
-			int km1 = n;
-			auto [wm_split, wm2_split] = split_cases( CL[j], WM,S, params,i,j,km1,n,fres);
 			
-
-			if(fres[j].pair<0) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
-			if(fres[j].pair<0) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
-			
+			// auto [wm_split, wm2_split] = split_cases( CL[j], WM,S, params,i,j,km1,n,fres);			
 			
 			// Check to see if wm and wm2 can be split
-			bool check = !(evaluate_restriction(i,km1,fres,true));
-			if(check && km1 != n) wm2_split=wm_split=INF;
+			// bool check = !(evaluate_restriction(i,km1,fres,true));
+			// if(check && km1 != n) wm2_split=wm_split=INF;
 			energy_t w  = w_split; // entry of W w/o contribution of V
 			energy_t wm = wm_split; // entry of WM w/o contribution of V
 
@@ -1205,10 +1388,14 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 
 			const int ptype_closing = pair[S[i]][S[j]];
 			const bool restricted = fres[i].pair == -1 || fres[j].pair == -1;
-
+			bool unpaired = (fres[i].pair<-1 && fres[j].pair<-1);
+			bool paired = (fres[i].pair == j && fres[j].pair == i);
+			energy_t v = INF;
+			energy_t w_v = INF;
+			energy_t wm_v = INF;
 			// ----------------------------------------
 			// cases with base pair (i,j)
-			if(ptype_closing>0 && !restricted && evaluate) { // if i,j form a canonical base pair
+			if(ptype_closing>0 && !restricted && evaluate && j-i>3) { // if i,j form a canonical base pair
 
 				bool canH = true;
 				if((fres[i].pair>-1 && fres[i].pair != j) || (fres[j].pair>-1 && fres[j].pair != i)) canH = false;
@@ -1255,17 +1442,22 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 						}
 					}
 				}
-				bool unpaired = (fres[i].pair<-1 && fres[j].pair<-1);
-				bool paired = (fres[i].pair == j && fres[j].pair == i);
+				
 				
 				energy_t v_split = E_MbLoop(dmli1,dmli2,S,params,i,j,fres);
 				// Look at case for WMB in VM
 				// v_split = std::min(v_split,(dwmbi[j-1]+params->PSM_penalty+E_MLstem(ptype_closing,(i == 1) ? S[n] : S[i - 1], S[j + 1], params)));
-				const energy_t v = std::min(v_h,std::min(v_iloop,v_split));
+				v = std::min(v_h,std::min(v_iloop,v_split));
 
-				const energy_t w_v  = (unpaired || paired) ? v + vrna_E_ext_stem(ptype_closing,si1,sj1,params): INF;
-				const energy_t wm_v = (unpaired || paired) ? E_MLStem(v,INF,INF,INF,WM,CL,S,params,i,j,n,fres): INF;
-				
+				v_split = std::min(v_split,dwmbi[j-1]);
+
+				size_t ip1_mod = (i+1)%(MAXLOOP+1);
+				energy_t vk1j = V(ip1_mod,j);
+				energy_t vkj1 = V(i_mod,j-1);
+				energy_t vk1j1 = V(ip1_mod,j-1);
+
+				w_v  = (unpaired || paired) ? v + vrna_E_ext_stem(ptype_closing,si1,sj1,params): INF;
+				wm_v = (unpaired || paired) ? E_MLStem(v,vk1j,vkj1,vk1j1,WM,CL,S,params,i,j,n,fres): INF;
 				// update w and wm by v
 				if(paired){
 					w = w_v;
@@ -1274,8 +1466,8 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 					w = w_split;
 					wm = wm_split;
 				} else{
-					w  = std::min(w_v, w_split);
-					wm = std::min(wm_v, wm_split);
+					w  = std::min({w_v, w_split});
+					wm = std::min({wm_v, wm_split});
 				}
 				
 				// register required trace arrows from (i,j)
@@ -1289,21 +1481,11 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 						register_trace_arrow(ta,i,j,best_k,best_l,best_e);
 					}
 				}
-				// check whether (i,j) is a candidate; then register
-				if ( w_v < w_split || wm_v < wm_split || paired) {
-			
-					register_candidate(CL, i, j, v );
-
-					// always keep arrows starting from candidates
-					inc_source_ref_count(ta,i,j);
-				}
 				V(i_mod,j) = v;
 			} else {
 				V(i_mod,j) = INF;
 			} // end if (i,j form a canonical base pair)
-			W[j]       = w;
-			WM[j]      = wm;
-			WM2[j]     = wm2_split;
+			
 
 			
 			int Bp_ij = getBp(fres,i,j);
@@ -1312,11 +1494,10 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 			int bp_ij = getbp(fres,i,j);
 			std::vector<energy_t> wiB1;
 			std::vector<energy_t> wibp1;
-			wiB1.resize(n+1,INF);
-			wibp1.resize(n+1,INF);
+			wiB1.resize(n+1,0);
+			wibp1.resize(n+1,0);
 			
 			
-			const int ptype_closingp1 = pair[S[i+1]][S[j-1]];
 			// Start of VP ---- Will have to change the bounds to 1 to n instead of 0 to n-1
 			int weakly_closed_ij = is_weakly_closed(fres,B,b,i,j);
 			if (i == j || weakly_closed_ij == 1 || fres[i].pair > -1 || fres[j].pair > -1 || ptype_closing == 0)	{
@@ -1324,35 +1505,42 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 				VP(i_mod,j) = INF;
 			}
 			else{
-				int m1 = INF, m2 = INF, m3 = INF, m4= INF, m5 = INF, m6 = INF;
-				if(fres[fres[i].last_j].pair > -1 && fres[fres[j].last_j].pair == -1 && Bp_ij >= 0 && Bp_ij< n && B_ij >= 0 && B_ij < n){
-					recompute_WIP(wiB1,CL,CLWMB,S,params,n,B_ij+1,j,fres);
+				energy_t m1 = INF, m2 = INF, m3 = INF, m4= INF, m5 = INF, m6 = INF;
+				if(fres[fres[i].last_j].pair > -1 && fres[fres[j].last_j].pair == -1 && Bp_ij >= 0 && B_ij >= 0){
+					recompute_WI(wiB1,CL,CLWMB,S,params,n,B_ij+1,j-1,fres);
 					// int WI_ipus1_BPminus = get_WI(i+1,Bp_i - 1) ;
-					int WI_ipus1_BPminus = dwibi[Bp_ij-1];
+					energy_t WI_ipus1_BPminus = dwibi[Bp_ij-1];
 					// int WI_Bplus_jminus = get_WI(B_i + 1,j-1);
-					int WI_Bplus_jminus = wiB1[j-1];
+					energy_t WI_Bplus_jminus = wiB1[j-1];
 					m1 =   WI_ipus1_BPminus + WI_Bplus_jminus;
 				}
-				if (fres[fres[i].last_j].pair == -1 && fres[fres[j].last_j].pair > -1 && b_ij>= 0 && b_ij < n && bp_ij >= 0 && bp_ij < n){
-					recompute_WIP(wibp1,CL,CLWMB,S,params,n,bp_ij+1,j,fres);
+				// if(i==11 && j==24) std::cout << "b is " << b_ij << " and bp is " << bp_ij << std::endl; 
+				if (fres[fres[i].last_j].pair > -1 && fres[fres[j].last_j].pair > -1 && b_ij>= 0 && bp_ij >= 0){
+					recompute_WI(wibp1,CL,CLWMB,S,params,n,bp_ij+1,j-1,fres);
 					// int WI_i_plus_b_minus = get_WI(i+1,b_i - 1);
-					int WI_i_plus_b_minus = dwibi[b_ij-1];
+					// if(i==11 && j==24) std::cout << i+1 << "    " << b_ij-1 << std::endl;
+					energy_t WI_i_plus_b_minus = dwibi[b_ij-1];
 					// int WI_bp_plus_j_minus = get_WI(bp_i + 1,j-1);
-					int WI_bp_plus_j_minus = wibp1[j-1];
+					energy_t WI_bp_plus_j_minus = wibp1[j-1];
+					// if(i==10 && j==24) std::cout << WI_i_plus_b_minus << " " << WI_bp_plus_j_minus << std::endl;
 					m2 = WI_i_plus_b_minus + WI_bp_plus_j_minus;
 				}
-				if(fres[fres[i].last_j].pair > -1 && fres[fres[j].last_j].pair > -1 && Bp_ij >= 0 && Bp_ij < n && B_ij >= 0 && B_ij < n && b_ij >= 0 && b_ij < n && bp_ij>= 0 && bp_ij < n){
+				
+				if(fres[fres[i].last_j].pair > -1 && fres[fres[j].last_j].pair > -1 && Bp_ij >= 0 && B_ij >= 0  && b_ij >= 0 && bp_ij>= 0){
 					// int WI_i_plus_Bp_minus = get_WI(i+1,Bp_i - 1);
-					int WI_i_plus_Bp_minus = dwibi[Bp_ij-1];
-					int WI_B_plus_b_minus = wiB1[b_ij-1];
-					int WI_bp_plus_j_minus = wibp1[j-1];
+					energy_t WI_i_plus_Bp_minus = dwibi[Bp_ij-1];
+					energy_t WI_B_plus_b_minus = wiB1[b_ij-1];
+					energy_t WI_bp_plus_j_minus = wibp1[j-1];
 					// int WI_B_plus_b_minus = get_WI(B_i + 1,b_i - 1);
 					// int WI_bp_plus_j_minus = get_WI(bp_i +1,j - 1);
 					m3 = WI_i_plus_Bp_minus + WI_B_plus_b_minus + WI_bp_plus_j_minus;
 				}
-				if(fres[i+1].pair < -1 && fres[j-1].pair < -1 && ptype_closingp1>0){
+				if(fres[i+1].pair < -1 && fres[j-1].pair < -1){
 					// m4 = get_e_stP(i,j)+ get_VP(i+1,j-1);
+					int ip1_mod = (i+1)%(MAXLOOP+1);
+					m4 = params->e_stP_penalty*ILoopE(S,S1,params,ptype_closing,i,j,i+1,j-1) + VP(ip1_mod,j-1);
 				}
+				
 
 				int ip, jp;
 				int max_borders;
@@ -1365,20 +1553,22 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 				
 				for (ip = i+1; ip < min_borders; ip++){
 					int empty_region_i = is_empty_region(fres,B,b,i+1,ip-1); // i+1 to ip-1
+					int ip_mod = ip%(MAXLOOP+1);
 					if (fres[ip].pair < -1 && (fres[fres[i].last_j].pair == fres[fres[ip].last_j].pair) && empty_region_i == 1){
 						max_borders= 1;
-						if (bp_ij > 1 && bp_ij < n && B_ij > 1 && B_ij < n) max_borders = std::max(bp_ij,B_ij);
-						else if (B_ij > 1 && B_ij < n && (bp_ij < 1 || bp_ij > n)) max_borders = B_ij;
-						else if (bp_ij > 1 && bp_ij < n && (B_ij < 1 || B_ij > n)) max_borders = bp_ij;
-						int edge_j = j-30;
+						if (bp_ij > 1 && B_ij > 1) max_borders = std::max(bp_ij,B_ij);
+						else if (B_ij > 1 && bp_ij < 1) max_borders = B_ij;
+						else if (bp_ij > 1 && B_ij < 1) max_borders = bp_ij;
+						int edge_j = j-31;
 						max_borders = std::max({max_borders,edge_j});
 						for (jp = max_borders+1; jp < j ; jp++){
 							int empty_region_j = is_empty_region(fres,B,b,jp+1,j-1); // jp+1 to j-1
+							// if(i==7 && j==27) std::cout << ip << " " << jp << " " << empty_region_j << std::endl;
 							if (fres[jp].pair < -1 && pair[S[ip]][S[jp]]>0 && empty_region_j == 1){
 								//arc to arc originally
 								if (fres[j].last_j == fres[jp].last_j){
-									int ip_mod = ip%(MAXLOOP+1);
-									int temp = params->e_intP_penalty*ILoopE(S,S1,params,ptype_closing,i,j,ip,jp) + VP(ip_mod,jp);
+									energy_t temp = params->e_intP_penalty*ILoopE(S,S1,params,ptype_closing,i,j,ip,jp) + VP(ip_mod,jp);
+									// if(i==7 && j==27 && ip ==9 && jp == 25) std::cout << VP(ip_mod,jp) << " " << params->e_intP_penalty*ILoopE(S,S1,params,ptype_closing,i,j,ip,jp) << " " << temp << std::endl;
 									if (m5 > temp){
 										m5 = temp;
 									}
@@ -1387,7 +1577,8 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 						}
 					}
 				}
-
+				if(i==2 && j==32) std::cout << m4 << " " << m5 << std::endl;
+				// if(i==7 && j==27) std::cout << min_borders << " " << max_borders << std::endl;
 				// int r;
 				// int min_Bp_j = j;
 				// if (Bp_ij > 0 && Bp_ij < n && Bp_ij < min_Bp_j) min_Bp_j = Bp_ij;
@@ -1401,63 +1592,76 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 				// 	}
 				// }
 				// std::cout << max_borders << std::endl;
-				int max_i_bp = i;
-				if (bp_ij > 0 && bp_ij < n && bp_ij > max_i_bp) max_i_bp = bp_ij;
-				for(int l = max_i_bp; l<j;++l){
-					for ( auto const [key,val] : CL[l] ) {
-						size_t k=key;
-						if(!is_weakly_closed(fres,B,b,k,l)){
-							int upik = INF;
-							if(is_empty_region(fres,B,b,i,k)) params->cp_penalty*(k-i);
-							int uplj = INF;
-							if(is_empty_region(fres,B,b,l,j)) params->cp_penalty*(j-l); // could perhaps optimize this by having it check just the next base after the first time instead of recalculating empty region
-							std::vector<energy_t> WIlj;
-							WIlj.resize(n+1,INF);
-							recompute_WIP(WIlj,CL,CLWMB,S,params,n,l,j,fres);
-							if(upik<dwibi[k] && uplj<WIlj[j-1]) break;
-							int vp_kl = std::min(dwibi[k],upik) + val + std::min(WIlj[j-1],uplj) + params->ap_penalty + 2*params->bp_penalty;
-							m6 = std::min(m6,vp_kl);	
-						}
-						
-					}
+
+				// case 6 and 7
+				int left_bound = std::min(Bp_ij,b_ij);
+				for ( auto const [key,val] : CLVPP[j-1] ) {
+					size_t k = key;
+					if(!(k>i && k<left_bound)) continue;
+					// std::vector<energy_t> wipkm1;
+					// wipkm1.resize(n+1,INF);
+					// recompute_WIP(wipkm1,CL,CLWMB,S,params,n,i+1,k-1,fres);
+					energy_t WIPVPP = dwip1[k-1] + val;
+					// WIPVPP = std::min(WIPVPP,val + static_cast<energy_t>(k-i)*params->cp_penalty);
+					m6 = std::min(m6, WIPVPP + params->ap_penalty + 2*params->bp_penalty);
+				
 				}
-
-				// int max_i_bp = i;
-				// if (bp_ij > 0 && bp_ij < n && bp_ij > max_i_bp) max_i_bp = bp_ij;
-				// for (r = max_i_bp+1; r < j ; r++){
-				// 	if (fres[r].pair < -1){
-				// 		// int tmp = get_VPP(i+1,r) + get_WIP(r+1,j-1)+ ap_penalty + 2* bp_penalty;
-				// 		// if (tmp < m7){
-				// 		// 	m7 = tmp;
-				// 		// }
-				// 	}
-				// }
-				// I would think that if we wanted to limit VP case 6 and 7 (and VPP) to just 30 on either side as well
-				// then we could combine them all into one for loop. As well, if we do this, we should be able to combine
-				// case 6 and 8 into one case and do the calculation for the latter WIP through the use of candidates
-
+				
+				
 				VP(i_mod,j) = std::min({m1, m2, m3, m4, m5, m6});
+
+				
+				
+				
+				energy_t VP_j_split = INF;
+				for ( auto const [key,val] : CLVP_j[j] ) {
+					size_t k = key;
+					VP_j_split = std::min(VP_j_split,val);
+				}
+				if(VP(i_mod,j)<VP_j_split){
+					register_candidate(CLVP_j,i,j,VP(i_mod,j));
+				}
+				if(VP(i_mod,j)<VP_i_split){
+					register_candidate(CLVP_i,j,i,VP(i_mod,j));
+				}
+				VP_i_split = std::min(VP_i_split,VP(i_mod,j));
+
+				
 			}
 			// End of VP
 
 			// Start of WMBP
-			int WMBP[n+1];
+			// int WMBP[n+1];
 			if ((fres[i].pair >= -1 && fres[i].pair > j) || (fres[j].pair >= -1 && fres[j].pair < i) || (fres[i].pair >= -1 && fres[i].pair < i ) || (fres[j].pair >= -1 && j < fres[j].pair)) WMB[j] = INF;
 			else{
 				int m1 = INF, m3 = INF, m4 = INF, m5 = INF;
 				if(fres[j].pair < 0 && fres[i].pair >= 0){
 					int tmp = INF, l, l_min=-1;
-					for (l = i+1; l < j; l++){
+					// for (l = i+1; l < j; l++){
+					for ( auto const [key,val] : CLVP_j[j] ){
+						size_t l = key;
 						int bp_il = getbp(fres,i,l);
 						if(bp_il >= 0 && bp_il < n && l+TURN <= j){
+							energy_t BE_energy = INF;
+							for ( auto const [key,val] : CLBE[bp_il] ){
+								size_t k = key;
+								if(i==k){
+									BE_energy = val;
+									break;
+								}
+							}
+							std::vector<energy_t> wipbpl;
+							wipbpl.resize(n+1,INF);
+							recompute_WI(wipbpl,CL,CLWMB,S,params,n,bp_il,l-1,fres);
 						// int BE_energy = get_BE(i,fres[i].pair,bp_i_l,fres[bp_i_l].pair);
 						// int WI_energy = get_WI(bp_i_l +1,l-1);
-						// int VP_energy = get_VP(l,j);
-						// int sum = BE_energy + WI_energy + VP_energy;
-						// if (tmp > sum){
-						// 	tmp = sum;
-						// 	l_min = l;
-						// }
+						energy_t WI_energy = wipbpl[l-1];
+						energy_t VP_energy = val;
+						energy_t sum = BE_energy + WI_energy + VP_energy;
+						if (tmp > sum){
+							tmp = sum;
+							l_min = l;
+						}
 						}
 					}
 					m1 = 2*params->PB_penalty + tmp;
@@ -1465,18 +1669,32 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 
 				// 3)
 				if (fres[j].pair < 0){
-					int l, temp = INF, l_min=-1;
-					for (l = i+1; l<j ; l++){
+					int temp = INF, l_min=-1;
+					// for (l = i+1; l<j ; l++){
+					for ( auto const [key,val] : CLVP_j[j] ){
+						size_t l = key;
 						int B_lj = getB(B,fres,l,j);
 						int Bp_lj = getBp(fres,l,j);
 						if (fres[fres[l].last_j].pair > -1 && B_lj >= 0 && B_lj < n && Bp_lj >= 0 && Bp_lj<n){
 							if (b_ij >= 0 && b_ij < n && l < b_ij){
 								if (i <= fres[fres[l].last_j].pair && fres[fres[l].last_j].pair < j && l+3 <=j){
-									// int sum = get_BE(fres[B_lj].pair,B_lj,fres[Bp_lj].pair,Bp_lj)+ get_WMBP(i,l-1)+ get_VP(l,j);
-									// if (temp > sum){
-									// 	temp = sum;
-									// 	l_min = l;
-									// }
+									// int BE_energy = get_BE(fres[B_lj].pair,B_lj,fres[Bp_lj].pair,Bp_lj)
+									energy_t BE_energy = INF;
+									int b_lj = fres[B_lj].pair;
+									for ( auto const [key,val] : CLBE[fres[Bp_lj].pair] ){
+										size_t k = key;
+										if(b_lj==k){
+											BE_energy = val;
+											break;
+										}
+									}
+									energy_t WMBP_energy = WMBP[l-1];
+									energy_t VP_energy = val;
+									energy_t sum = BE_energy + WMBP_energy + VP_energy;
+									if (temp > sum){
+										temp = sum;
+										l_min = l;
+									}
 								}
 							}
 						}
@@ -1485,33 +1703,36 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 				}
 
 				// 4) WMB(i,j) = VP(i,j) + P_b
-				int temp = VP(i_mod,j) + params->PB_penalty;
-				if (temp < m4){
-					m4 = temp;
-				}
+				m4 = VP(i_mod,j) + params->PB_penalty;
+				
 				if(fres[j].pair < j){
 					int l,l_min =-1;
 					for(l = i+1; l<j; l++){
 						if (fres[l].pair < 0 && fres[fres[l].last_j].pair > -1 && fres[fres[j].last_j].pair > -1 && fres[fres[j].last_j].pair == fres[fres[l].last_j].pair){
+							energy_t WMBP_energy = WMBP[l];
+							
+							std::vector<energy_t> wipBpl;
+							wipBpl.resize(n+1,INF);
+							recompute_WI(wipBpl,CL,CLWMB,S,params,n,l+1,j,fres);
+							energy_t WI_energy = wipBpl[j]; 
 							// int temp = get_WMBP(i,l) + get_WI(l+1,j);
-							// if (temp < m5){
-							// 	m5 = temp;
-							// 	l_min = l;
-							// }
+							energy_t temp = WMBP_energy + WI_energy;
+							if (temp < m5){
+								m5 = temp;
+								l_min = l;
+							}
 						}
 					}
 				}
 
 			// get the min for WMB
 			WMBP[j] = std::min({m1,m3,m4,m5});
-			}
 
 			// End of WMBP
 
 			// Start of WMB
 
-			if ((fres[i].pair >= -1 && fres[i].pair > j) || (fres[j].pair >= -1 && fres[j].pair < i) || (fres[i].pair >= -1 && fres[i].pair < i ) || (fres[j].pair >= -1 && j < fres[j].pair)) WMB[j] = INF;
-			else{
+			
 			int m2 = INF, mWMBP = INF;
 			// 2)
 			if (fres[j].pair >= 0 && j > fres[j].pair){
@@ -1521,11 +1742,28 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 				for (l = (bp_j +1); (l < j); l++){
 					int Bp_lj = getBp(fres,l,j);
 					if (Bp_lj >= 0 && Bp_lj<n){
-						// int sum = get_BE(bp_j,j,fres[Bp_lj].pair,Bp_lj) + get_WMBP(i,l) + get_WI(l+1,Bp_lj-1);
-						// if (temp > sum){
-						// 	temp = sum;
-						// 	l_min = l;
-						// }
+						// energy_t BE_energy = get_BE(bp_j,j,fres[Bp_lj].pair,Bp_lj);
+						energy_t BE_energy = INF;
+						for ( auto const [key,val] : CLBE[fres[Bp_lj].pair] ){
+							size_t k = key;
+							if(bp_j==k){
+								BE_energy = val;
+								break;
+							}
+						}
+
+
+						energy_t WMBP_energy = WMBP[l];
+						std::vector<energy_t> wiplBp;
+						wiplBp.resize(n+1,INF);
+						recompute_WI(wiplBp,CL,CLWMB,S,params,n,l+1,Bp_lj-1,fres);
+						energy_t WI_energy = wiplBp[Bp_lj-1];
+						// energy_t WI_energy = get_WI(l+1,Bp_lj-1)
+						energy_t sum = BE_energy + WMBP_energy + WI_energy;
+						if (temp > sum){
+							temp = sum;
+							l_min = l;
+						}
 
 					}
 				}
@@ -1536,226 +1774,179 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 
 			// get the min for WMB
 			WMB[j] = std::min(m2,mWMBP);
-			}
+			
 
 			// End of WMB
+			}
 
+			
 			// Start of WI -- the conditions on calculating WI is the same as WIP, so we combine them
-			int wi_split = INF;
-			int wip_split = INF;
-		
+			int wi_v = INF;
+			int wip_v = INF;
+			int wi_wmb = INF;
+			int wip_wmb = INF;
+	
 			if (weakly_closed_ij == 0 || fres[fres[i].last_j].pair != fres[fres[j].last_j].pair){
 					WI[j] = INF;
 					WIP[j] = INF;
 			}
+			else if(i==j){
+				WI[j] = params->PUP_penalty;
+			}
 			else{
-				int wi_v = INF;
-				int wip_v = INF;
-				int wi_wmb = INF;
-				int wip_wmb = INF;
-				
-				for ( auto const [key,val] : CL[j] ) {
-					size_t k=key;
-					// Start with WI
-					energy_t v_kj = val + params->PPS_penalty;
-					wi_split = std::min(wi_split,WI[k] + v_kj);
-					// Then do WIP
-					v_kj = val + params->bp_penalty;
-					wip_split = std::min(wip_split,WIP[k]+v_kj);
-					wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*params->cp_penalty) +v_kj);
-				}
-
-				for ( auto const [key,val] : CLWMB[j] ) {
-					size_t k=key;
-					// Start with WI
-					energy_t wmb_kj = val + params->PSP_penalty + params->PPS_penalty;
-					wi_split = std::min(wi_split,WI[k] + wmb_kj);
-					// Then do WIP
-					wmb_kj = val + params->PSM_penalty + params->bp_penalty;
-					wip_split = std::min(wip_split,WIP[k]+wmb_kj);
-					wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*params->cp_penalty) +wmb_kj);
-				}
-				wip_split = std::min(wip_split,WIP[j-1]) + params->cp_penalty;
-				// for (int t = i; t< j; t++){
-					// int wi_1 = get_WI(i,t);
-					// int wi_2 = get_WI(t+1,j);
-					// int energy = wi_1 + wi_2;
-					// m1 = (m1 > energy)? energy : m1;
-				// }
-
-				// branch 2:
-
-				// if ((fres[i].pair == j && fres[j].pair == i) ||(fres[i].pair < -1 && fres[j].pair < -1)){
-				// 	int v_ener = (i>j)? INF: V(i_mod,j);
-				// 	m2 = v_ener + params->PPS_penalty;
-				// }
 				if(ptype_closing>0 && !restricted && evaluate) {
 					wi_v = V(i_mod,j) + params->PPS_penalty;
 					wip_v = V(i_mod,j)	+ params->bp_penalty;
 				}
 				wi_wmb = WMB[j] + params->PSP_penalty + params->PPS_penalty;
 				wip_wmb = WMB[j] + params->PSM_penalty + params->bp_penalty;
-
-				WI[j] = std::min({wi_split,wi_v,wi_wmb});
+				
+				energy_t WI_unp = (j-i+1)*params->PUP_penalty;
+				WI[j] = std::min({wi_split,wi_v,wi_wmb,WI_unp});
 				WIP[j] = std::min({wip_split,wip_v,wip_wmb});
+
+				if(i==12 && j==14) std::cout<<wi_split << " " << wi_v << " " << wi_wmb << " " << WI_unp << std::endl;
+				
 			}
-			// End of WI
-			// int WIP[n+1];
-			// // Start of WIP
-			// if (fres[fres[i].last_j].pair != fres[fres[j].last_j].pair || weakly_closed_ij == 0){
-			// 	WIP[j] = INF;
-			// }else{
-			// 	int m1 = INF, m2 = INF, m3 = INF, m4 = INF, m5 = INF;
-			// 	// branch 1:
-			// 	if (fres[i].pair < -1){
-			// 		// m1 = get_WIP(i+1,j) + params->cp_penalty;
-			// 	}
-			// 	// branch 2:
-			// 	if (fres[j].pair < -1){
-			// 		// m2 = WIP[j-1] + params->cp_penalty;
-			// 	}
-			// 	//branch 3:
-			// 	int t;
-			// 	for (t = i; t <j; t++){
-			// 		// int tmp = get_WIP(i,t) + get_WIP(t+1,j);
-			// 		// if (tmp < m3){
-			// 		// 	m3 = tmp;
-			// 		// }
-			// 	}
 
-			// 	// branch 4:
-			// 	if (fres[i].pair == j || (fres[i].pair < -1 && fres[j].pair < -1 && ptype_closing>0)){
-			// 		// m4 = V(i_mod,j)	+ params->bp_penalty;
-			// 	}
+			// start of VPP
+			
+			// This is for finding the previous VPP's for j i.e. the VPP split
+			if(!is_weakly_closed(fres,B,b,i,j)){
+				energy_t VPP_split = INF;
+				for (auto const [key,val] : CLVPP[j] ) {
+					size_t k = key;
+					if(val < VPP_split) VPP_split = val;
+				}
+			
 
-			// 	// branch 5:
-			// 	// m5 = WMB[j] + params->PSM_penalty + params->bp_penalty;
+				// k is the j for VP but it's used for the i for WIP
+				// This is for determing if this ij should be a VPP candidate - it gives the value for VPP[ij]
+				energy_t VPP_ij = INF;
+				int right_bound = std::max(bp_ij,B_ij);
+				for (auto const [key,val] : CLVP_i[i] ) {
+					size_t k = key;
+					if(!(k<j && k>right_bound)) continue;
+					std::vector<energy_t> wivp1;
+					wivp1.resize(n+1,INF);
+					recompute_WIP(wibp1,CL,CLWMB,S,params,n,k+1,j,fres);
+					energy_t val_kj = val + wivp1[j]; 
+					val_kj = std::min(val_kj, val + static_cast<energy_t>(params->cp_penalty*(j-k)));
+					if(val_kj < VPP_ij) VPP_ij = val_kj;	 
+				}
 
-			// 	WIP[j] = std::min({m1,m2,m3,m4,m5});
-			// }
-			// End of WIP
-
-
-
-			// // start of VPP
-			// int VPP[n+1];
-			// if(is_weakly_closed(fres,B,b,i,j)) VPP[j] = INF;
-			// else{
-			// 	int m1 = INF, m2 = INF, m3 = INF, m4 = INF;
-			// 	int r = -1;
-
-			// 	int max_i_bp = i;
-			// 	if (bp_ij > 0 && bp_ij < n && bp_ij > max_i_bp) max_i_bp = bp_ij;
-			// 	for (r = max_i_bp+1; r < j; r++ ){
-			// 		if (fres[r].pair < -1){
-			// 			// int tmp = get_VP(i,r) + get_WIP(r+1,j);
-			// 			// if (tmp < m1){
-			// 				// m1 = tmp;
-			// 			// }
-			// 		}
-			// 	}
-
-			// 	int min_Bp_j = j;
-			// 	if (Bp_ij > 0 && Bp_ij < n && bp_ij < min_Bp_j) min_Bp_j = Bp_ij;
-			// 	for (r = i+1; r < min_Bp_j; r++){
-			// 		if (fres[r].pair < -1){
-			// 			// int tmp = get_WIP(i,r-1) + get_VP(r,j);
-			// 			// if (tmp < m2){
-			// 			// 	m2 = tmp;
-			// 			// }
-			// 		}
-			// 	}
-
-			// 	for (r = max_i_bp+1; r < j; r++ ){
-			// 		int empty_region_rj = is_empty_region(fres,B,b,r+1,j); // r+1 to j
-			// 		if (fres[r].pair < -1 && empty_region_rj){
-			// 			// int tmp = get_VP(i,r) + (cp_penalty *(j-r)); // check the (j-r) part
-			// 			// if (tmp < m3){
-			// 			// 	m3 = tmp;
-			// 			// }
-			// 		}
-			// 	}
-
-			// 	for (r = i+1; r < min_Bp_j; r++){
-			// 		int empty_region_ir = is_empty_region(fres,B,b,i,r-1); // i to r-1
-			// 		if (fres[r].pair < -1 && empty_region_ir){
-			// 			// int tmp = (params->cp_penalty * (r-i)) + get_VP(r,j);
-			// 			// if (tmp < m4){
-			// 			// 	m4 = tmp;
-			// 			// }
-			// 		}
-			// 	}
-			// 	VPP[j] = std::min({m1,m2,m3,m4});
-			// }
+				if(VPP_ij<VPP_split){
+					register_candidate(CLVPP, i, j, VPP_ij );
+				}
+			}
 			// End of VPP
 
 
 			// Start of BE
-			int BE[n+1];
-			int ip = fres[i].pair; // might be the case that j and jp should be i and ip and vice versa.
-			int jp = fres[j].pair; // currently, i is paired with ip and j with jp
+			int ip = fres[i].pair; // i's pair ip should be right side so ip = )
+			int jp = fres[j].pair; // j's pair jp should be left side so jp = (
 			// if (!( i >= 0 && i <= ip && ip < jp && jp <= j && j < n && fres[i].pair >= -1 && fres[j].pair >= -1 && fres[ip].pair >= -1 && fres[jp].pair >= -1 && fres[i].pair == j && fres[j].pair == i && fres[ip].pair == jp && fres[jp].pair == ip)){ //impossible cases
 			
 			// base case: i.j and ip.jp must be in G
-			if (fres[i].pair != j || fres[ip].pair != jp) BE[ip] = INF;
-			else{
+			if (ip > i && j > jp && jp > i && ip > j){ // Don't need to check if they are pairs separately because it is checked by virtue of these checks
+
+				// We are checking for the closest pair that we have already calculated to i/ip from j/jp 
+				// If there is nothing, then i is the closest encompassing pair to jp
+				// If it is not, then we get the energy for everything from jp to lp so that we calculate less
+				energy_t BE_energy = INF;
+				int lp = jp;
+				for ( auto const [key,val] : CLBE[fres[jp].pair] ){
+					size_t k = key;
+					BE_energy = val;
+					lp = k;
+					
+				}
+				int l = fres[lp].pair; // right closing base for lp
 
 				int m1 = INF, m2 = INF, m3 = INF, m4 = INF, m5 = INF;
-				if (fres[i+1].pair == ip-1){
-					// m1 = params->e_stP_penalty*ILoopE(S,S1,params,ptype_closing,i,j,i+1,j-1) + get_BE(i+1,j-1,ip,jp);
+				// if (fres[i+1].pair == ip-1){
+				if(i+1 == lp and i-1 == ip){
+					m1 = params->e_stP_penalty*ILoopE(S,S1,params,ptype_closing,i,ip,lp,l) + BE_energy;
 				}
 
-				for (int l = i+1; l<= ip ; l++){
-					if (fres[l].pair >= -1 && j <= fres[l].pair && fres[l].pair < ip){
-						int lp = fres[l].pair;
-						int empty_region_il = is_empty_region(fres,B,b,i+1,l-1);
-						int empty_region_lj = is_empty_region(fres,B,b,lp+1,ip-1);
-						int weakly_region_il = is_weakly_closed(fres,B,b,i+1,l-1);
-						int weakly_closed_lj = is_weakly_closed(fres,B,b,lp+1,ip-1);
-						
-						if (empty_region_il == 1 && empty_region_lj == 1 ){
-							// int temp = params->e_intP_penalty*ILoopE(S,S1,params,ptype_closing,i,ip,l,lp)+ get_BE(l,lp,jp,j);
-							// if (m2 > temp){
-							// 	m2 = temp;
-							// }
-						}
+					// for (int k = i+1; k<= lp ; k++){
+					// if (fres[l].pair >= -1 && j <= fres[k].pair && fres[k].pair < ip){
+					
+				int empty_region_ilp = is_empty_region(fres,B,b,i+1,lp-1);
+				int empty_region_lip = is_empty_region(fres,B,b,l+1,ip-1);
+				int weakly_closed_ilp = is_weakly_closed(fres,B,b,i+1,lp-1);
+				int weakly_closed_lip = is_weakly_closed(fres,B,b,l+1,ip-1);
 
-						// 3)
-						if (weakly_region_il == 1 && weakly_closed_lj == 1){
-							// int temp = get_WIP(i+1,l-1) + get_BE(l,lp,jp,j) + get_WIP(lp+1,ip-1)+ params->ap_penalty + 2*params->bp_penalty;
-							// if (m3 > temp){
-							// 	m3 = temp;
-							// }
-						}
+				std::vector<energy_t> wiilp;
+				std::vector<energy_t> wilip;
 
-						// 4)
-						if (weakly_region_il == 1 && empty_region_lj == 1){
-							// int temp = get_WIP(i+1,l-1) + get_BE(l,lp,jp,j) + params->cp_penalty * (ip-lp+1) + params->ap_penalty + 2*params->bp_penalty;
-							// if (m4 > temp){
-							// 	m4 = temp;
-							// }
-						}
-
-						// 5)
-						if (empty_region_il == 1 && weakly_closed_lj == 1){
-							// int temp = params->ap_penalty + 2*params->bp_penalty + (params->cp_penalty * (l-i+1)) + get_BE(l,lp,jp,j) + get_WIP(lp+1,ip-1);
-							// if (m5 > temp){
-							// 	m5 = temp;
-							// }
-						}
-					}
+				if(weakly_closed_ilp){
+					wiilp.resize(n+1,INF);
+					recompute_WIP(wiilp,CL,CLWMB,S,params,n,i+1,lp-1,fres);
 				}
+				if(weakly_closed_lip){
+					wilip.resize(n+1,INF);
+					recompute_WIP(wiilp,CL,CLWMB,S,params,n,l+1,ip-1,fres);
+				}
+					
+				if (empty_region_ilp && empty_region_lip){
+					m2 = params->e_intP_penalty*ILoopE(S,S1,params,ptype_closing,i,ip,lp,l) + BE_energy;
+				}
+
+					// 3)
+				if (weakly_closed_ilp && weakly_closed_lip){
+					// get_WIP(i+1,l-1)
+					// get_WIP(lp+1,ip-1)
+					m3 = wiilp[l-1] + BE_energy + wilip[ip-1]+ params->ap_penalty + 2*params->bp_penalty;
+				}
+
+					// 4)
+				if (weakly_closed_ilp && empty_region_lip){
+					m4 = wiilp[l-1] + BE_energy + params->cp_penalty * (ip-lp+1) + params->ap_penalty + 2*params->bp_penalty;
+				}
+
+					// 5)
+				if (empty_region_ilp && weakly_closed_lip){
+					m5 = params->ap_penalty + 2*params->bp_penalty + (params->cp_penalty * (l-i+1)) + BE_energy + wilip[ip-1];
+				}
+					// }
+				register_candidate(CLBE,i,jp,std::min({m1,m2,m3,m4,m5}));
+			}
 
 				// finding the min and putting it in BE[iip]
-				BE[ip] = std::min({m1,m2,m3,m4,m5});
-			}
+				// BE[ip] = std::min({m1,m2,m3,m4,m5});
+				
 			// End of BE
 
+			//Things that needed to happen later like W's wmb
+			const energy_t w_wmb = (unpaired) ? WMB[j] + params->PS_penalty : INF;
+			const energy_t wm_wmb = (unpaired) ? WMB[j] + params->PSM_penalty + params->b_penalty : INF;
+			if(!pairedkj && !paired) {
+				w =std::min(w,w_wmb);
+				wm = std::min(wm,wm_wmb);
+			}
+			// check whether (i,j) is a candidate; then register
+			if ( w_v < w_split || wm_v < wm_split || wi_v < wi_split || wip_v < wip_split || paired) {
+		
+				register_candidatetd1(CL, i, j, v, w_v);
+
+				// always keep arrows starting from candidates
+				inc_source_ref_count(ta,i,j);
+			}
+			if ( w_wmb < w_split || wm_wmb < wm_split || wi_wmb < wi_split || wip_wmb < wip_split) {
+		
+				register_candidate(CLWMB, i, j, WMB[j]);
+
+				// always keep arrows starting from candidates
+				inc_source_ref_count(ta,i,j);
+			}
+			W[j]       = w;
+			WM[j]      = wm;
+			WM2[j]     = wm2_split;
+		
 			
-		
-		
 		} // end loop j
-		rotate_arrays(WM,WM2,dmli1,dmli2,WMB,dwmbi,WI,dwibi,n);
+		rotate_arrays(WM2,dmli1,dmli2,WMB,dwmbi,WI,dwibi,WIP,dwip1,n);
 		// Clean up trace arrows in i+MAXLOOP+1
 		if (garbage_collect && i+MAXLOOP+1 <= n) {
 			gc_row(ta,i + MAXLOOP + 1 );
@@ -1764,11 +1955,12 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 		// Reallocate candidate lists in i
 		for ( auto &x: CL ) {
 			if (x.capacity() > 1.5*x.size()) {
-				cand_list_t vec(x.size());
+				cand_list_td1 vec(x.size());
 				copy(x.begin(),x.end(),vec.begin());
 				vec.swap(x);
 			}
 		}
+		
 
 		compactify(ta);
 	}
@@ -1874,6 +2066,13 @@ main(int argc,char **argv) {
 		std::cout << "input sequence and structure are not the same size" << std::endl;
 		exit(0);
 	}
+	std::string file= "";
+	args_info.paramFile_given ? file = parameter_file : file = "";
+	if(file!=""){
+		// FILE *fp;
+    	// fp = fopen(parameter_file.c_str(),"r");
+		vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+	}
 
 	bool verbose;
 	verbose = args_info.verbose_given;
@@ -1892,7 +2091,9 @@ main(int argc,char **argv) {
 	// Pseudoknot setup
 	setB(restricted,sparsemfefold.B);
 	setb(restricted,sparsemfefold.b);
-	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.CLWMB_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.VP_,sparsemfefold.WMB_,sparsemfefold.dwmbi_,sparsemfefold.WMBP_,sparsemfefold.WI_,sparsemfefold.dwib1_,sparsemfefold.WIP_,sparsemfefold.n_,sparsemfefold.garbage_collect_, sparsemfefold.fres,sparsemfefold.B,sparsemfefold.b);	
+	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.CLWMB_,sparsemfefold.CLVP_j_,sparsemfefold.CLVP_i_,sparsemfefold.CLVPP_,sparsemfefold.CLBE_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.VP_,sparsemfefold.WMB_,sparsemfefold.dwmbi_,sparsemfefold.WMBP_,sparsemfefold.WI_,sparsemfefold.dwib1_,sparsemfefold.WIP_,sparsemfefold.dwip1_,sparsemfefold.n_,sparsemfefold.garbage_collect_, sparsemfefold.fres,sparsemfefold.B,sparsemfefold.b);	
+	
+	
 	std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,sparsemfefold.fres, mark_candidates);
 	
 	
@@ -1919,11 +2120,30 @@ main(int argc,char **argv) {
 	std::cout << "TA rm:\t"<<erasedT(sparsemfefold.ta_)<<std::endl;
 
 	std::cout <<std::endl;
-	std::cout << "Can num:\t"<<num_of_candidates(sparsemfefold.CL_)<<std::endl;
-	std::cout << "Can cap:\t"<<capacity_of_candidates(sparsemfefold.CL_)<<std::endl;
 	std::cout << "TAs num:\t"<<sizeT(sparsemfefold.ta_)<<std::endl;
 	std::cout << "TAs cap:\t"<<capacityT(sparsemfefold.ta_)<<std::endl;
+	std::cout<< std::endl;
+
+	std::cout << "V Can num:\t"<<num_of_candidates(sparsemfefold.CL_)<<std::endl;
+	std::cout << "VCan cap:\t"<<capacity_of_candidates(sparsemfefold.CL_)<<std::endl;
+	std::cout << "VP_j Can num:\t"<<num_of_candidates(sparsemfefold.CLVP_j_)<<std::endl;
+	std::cout << "VP_j Can cap:\t"<<capacity_of_candidates(sparsemfefold.CLVP_j_)<<std::endl;
+	std::cout << "VP_i Can num:\t"<<num_of_candidates(sparsemfefold.CLVP_i_)<<std::endl;
+	std::cout << "VP_i Can cap:\t"<<capacity_of_candidates(sparsemfefold.CLVP_i_)<<std::endl;
+	std::cout << "VPP Can num:\t"<<num_of_candidates(sparsemfefold.CLVPP_)<<std::endl;
+	std::cout << "VPP Can cap:\t"<<capacity_of_candidates(sparsemfefold.CLVPP_)<<std::endl;
+	std::cout << "WMB Can num:\t"<<num_of_candidates(sparsemfefold.CLWMB_)<<std::endl;
+	std::cout << "WMB Can cap:\t"<<capacity_of_candidates(sparsemfefold.CLWMB_)<<std::endl;
+	std::cout << "BE Can num:\t"<<num_of_candidates(sparsemfefold.CLBE_)<<std::endl;
+	std::cout << "BE Can cap:\t"<<capacity_of_candidates(sparsemfefold.CLBE_)<<std::endl;
 	}
+
+	// for(int j = 1;j<=n;++j){
+	// 	for (auto const [key,val] : sparsemfefold.CLVP_j_[j] ) {
+	// 	size_t k = key;
+	// 	std::cout << k << " " << j << std::endl;
+	// 	}
+	// }
 	
 
 	return 0;
