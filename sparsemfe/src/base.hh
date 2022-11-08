@@ -5,7 +5,7 @@
 #include <utility>
 
 //! type of energy
-typedef int energy_t;
+typedef int32_t energy_t;
 
 
 template<class T1,class T2>

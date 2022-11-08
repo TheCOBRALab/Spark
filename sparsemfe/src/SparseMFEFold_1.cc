@@ -1074,8 +1074,9 @@ int getb(int *b, sparse_features *fres, int i, int l){
  */
 int getbp(sparse_features *fres, int i, int l){
     if(fres[l].pair>-1 || fres[l].in_pair == 0) return -2;
-    if((fres[i].in_pair>fres[l].in_pair && fres[fres[l].last_j].pair < fres[fres[i].last_j].pair) || (fres[i].in_pair==fres[l].in_pair && fres[l].last_j >= fres[i].last_j && (fres[i].pair < 0 || i> fres[i].pair))) return -1;
-    if(i>=l) return 0;
+    // if((fres[i].in_pair>fres[l].in_pair && fres[fres[l].last_j].pair < fres[fres[i].last_j].pair) || (fres[i].in_pair==fres[l].in_pair && fres[l].last_j >= fres[i].last_j && (fres[i].pair < 0 || i> fres[i].pair))) return -1;
+    if(i>fres[fres[l].last_j].pair) return -1;
+	if(i>=l) return 0;
 
     return fres[fres[l].last_j].pair;
 }
@@ -1089,8 +1090,9 @@ int getbp(sparse_features *fres, int i, int l){
  */
 int getBp(sparse_features *fres, int l, int j){
     if(fres[l].pair>-1 || fres[l].in_pair == 0) return -2;
-    if((fres[l].in_pair<fres[j].in_pair && fres[l].last_j > fres[j].last_j) || (fres[l].in_pair==fres[j].in_pair  && fres[l].last_j >= fres[j].last_j && (fres[j].pair < 0 || j< fres[j].pair))) return -1;
-    if(j<=l) return 0;
+    // if((fres[l].in_pair<fres[j].in_pair && fres[l].last_j > fres[j].last_j) || (fres[l].in_pair==fres[j].in_pair  && fres[l].last_j >= fres[j].last_j && (fres[j].pair < 0 || j< fres[j].pair))) return -1;
+    if(j<fres[l].last_j) return -1;
+	// if(j<=l) return 0;
     return fres[l].last_j;
 }
 /**
@@ -1577,7 +1579,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 						}
 					}
 				}
-				if(i==2 && j==32) std::cout << m4 << " " << m5 << std::endl;
+				// if(i==2 && j==32) std::cout << m4 << " " << m5 << std::endl;
 				// if(i==7 && j==27) std::cout << min_borders << " " << max_borders << std::endl;
 				// int r;
 				// int min_Bp_j = j;
@@ -1805,7 +1807,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto &C
 				WI[j] = std::min({wi_split,wi_v,wi_wmb,WI_unp});
 				WIP[j] = std::min({wip_split,wip_v,wip_wmb});
 
-				if(i==12 && j==14) std::cout<<wi_split << " " << wi_v << " " << wi_wmb << " " << WI_unp << std::endl;
+				// if(i==12 && j==14) std::cout<<wi_split << " " << wi_v << " " << wi_wmb << " " << WI_unp << std::endl;
 				
 			}
 
