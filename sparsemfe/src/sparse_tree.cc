@@ -1,0 +1,339 @@
+#include <iostream>
+#include <iomanip>
+#include <limits>
+#include <vector>
+#include <cmath>
+
+
+#define maxSize 14 // 2^14 for sparse table
+
+class Node {
+
+    public:
+        // Pointer to parent
+        Node* parent = nullptr;
+
+        int index = -1;
+
+        int pair = -2;
+
+        // vector of the positions of the children (all)
+        std::vector<int> bases;
+        // vector of the positions of the children (base pairs only)
+        std::vector<int> children;
+
+        Node(int index){
+            this->index = index;
+        }
+        Node(){
+
+        }
+
+
+};
+
+
+class sparse_tree{
+
+    public:
+
+        // const int maxSize = 14; 
+        std::vector<Node> tree; // A vector of Nodes corresponding to each index in the structure
+        std::vector<int> FAI; // The index of the First appearance of a node
+        std::vector<int> level; // Stores depths for each node of the tree
+        std::vector<int> euler; // euler walk
+        std::vector<int> depthArr; // depths corresponding to euler
+        std::vector<int> logn; // holds logn values
+        std::vector<int> up; // vector holding unpaired bases
+        uint16_t n;
+        std::string structure;
+        int ptr; // Pointer to euler walk
+        // uint16_t** sparse_table;
+        std::vector< std::vector<int> > sparse_table;
+        int p2[maxSize];
+
+
+        sparse_tree(std::string structure,int n){
+            this->n = n;
+            this->structure = structure;
+            tree.resize(n+1,Node());
+            tree[0] = Node(0);
+            FAI.resize(2*(n+1),-1);
+            level.resize((n+1),-1);
+            up.resize(n+1);
+            logn.resize(2*(n+1));
+            create_tree(n,structure);
+            preprocess();
+            ptr = 0;
+
+            int cur = 1;
+            dfs(0,-1,0);
+            // depthArr.resize(euler.size());
+            makeArr();
+            level.clear();
+            sparse_table.resize(euler.size(),std::vector<int>(maxSize,-1));
+            buildSparseTable(euler.size());
+        }
+
+    private:
+
+        // Create Level depthArray corresponding
+        // to the Euler walk Array
+        void makeArr()
+        {
+            for (auto x : euler) depthArr.push_back(level[x]);
+        }
+
+        /**
+         *  Query finds the node which is at the maximum height within a section of the depth array. 
+         * As the parent of the given l and r must be between the two, we can search between.
+         * By using the sparse table which holds the the maximum height node for 2^dx ahead of the node,
+         * we can cover the full area between l and r and find the max height node
+         */
+        int query(int l,int r){
+            int d = r-l;
+            int dx = logn[d];
+            if (l==r) return l;
+
+            if (depthArr[sparse_table[l][dx]] > depthArr[sparse_table[r-p2[dx]][dx]])
+                return sparse_table[r-p2[dx]][dx];
+            else
+                return sparse_table[l][dx];
+        }
+
+
+        /**
+         * Return the least common ancestor for the two indices we are given
+         * From query, we get the node with the maximum height between the two (the parent)
+         * and we find the actual position in the dfs
+        */
+        int LCA(int i,int j){
+                    // trivial case
+            if (i==j) return i;
+
+            if (FAI[i] > FAI[j]) std::swap(i,j);
+            // doing RMQ in the required range
+            return euler[query(FAI[i], FAI[j])];
+        }   
+
+        /**
+         * Fill the array p2 with the powers of 2 so that we do not need to recalculate them
+        */
+        void preprocess(){
+            // memorizing powers of 2
+            p2[0] = 1;
+            for (int i=1; i<maxSize; i++)
+                p2[i] = p2[i-1]*2; 
+
+            // memorizing all log(n) values
+            int val = 1,ptr=0;
+            for (int i=1; i<2*n; i++){
+                logn[i] = ptr-1;
+                if (val==i){
+                    val*=2;
+                    logn[i] = ptr;
+                    ptr++;
+                }
+            }          
+        }
+        /**
+         * Create a tree from a structure
+         * A stack is used to hold the opening base pairs indices
+         * Every iteration we create a node with an index of i
+         * We assign it a pointer to its parent if it has one
+         * If the index is a closing pair, we set the pair class variable for the nodes and we pop from the stack
+         * If the index is an opening pair, we push it back as one of the children of the parent and push the index into the stack
+         * If the index is an x, the base cannot pair and we change the pair value to -1
+        */
+        void create_tree(int n, std::string structure){
+
+            // std::vector<Node> stack;
+            std::vector<int> stackI;
+            int count = 0;
+            stackI.push_back(0);
+            for(int i = 1; i<=n;++i){
+                
+                if(structure[i-1] == 'x') tree[i].pair = -1;
+                
+                if(structure[i-1] == ')'){
+                    tree[i].pair = stackI.back();
+                    tree[stackI.back()].pair = i; 
+                    stackI.pop_back();
+                    count = 0;
+                }
+
+                tree[i].index = i;
+                tree[i].parent = &tree[stackI.back()];
+                tree[stackI.back()].bases.push_back(i);  
+                
+                
+                if(structure[i-1]== '('){
+                    tree[stackI.back()].children.push_back(i); // only push back base pairs -> pushes back the start of the pair
+                    stackI.push_back(i);
+                    count = 0;
+                }
+                up[i] = count;
+                ++count;
+                
+            }
+
+        }
+
+        /**
+         * Euler Walk ( preorder traversal)
+         * converting tree to linear depthArray
+         * Time Complexity : O(n)
+         * */
+        void dfs(int cur, int prev, int dep){
+            
+            if (FAI[cur]==-1) FAI[cur] = ptr;
+            level[cur] = dep;
+            euler.push_back(cur);
+            ptr++;
+            for (auto x:tree[cur].bases){
+                if (x != prev){
+                    dfs(x,cur,dep+1);
+                    euler.push_back(cur);
+                    ptr++;
+                }
+            }
+        }
+
+        /**
+         * Build the sparse table which allows for constant time queries through precomputed saved values
+        */
+        void buildSparseTable(int n){
+    
+            // filling base case values
+            for (int i=1; i<n; i++)
+                sparse_table[i-1][0] = (depthArr[i]>depthArr[i-1])?i-1:i;
+        
+            //dp to fill sparse table
+            for (int l=1; l<maxSize; l++){
+                for (int i=0; i<n; i++){
+                    if (sparse_table[i][l-1]!=-1 && sparse_table[i+p2[l-1]][l-1]!=-1)
+                    sparse_table[i][l] =
+                        (depthArr[sparse_table[i][l-1]]>depthArr[sparse_table[i+p2[l-1]][l-1]])?
+                        sparse_table[i+p2[l-1]][l-1] : sparse_table[i][l-1];
+                    else
+                        break;
+                }
+            }
+        }
+
+    public:
+
+            
+        /**
+         * Returns the left innermost pair in a band between i and l
+        */
+        int bp(int i, int l ){
+            if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
+            if ((tree[l].parent)->index < i) return -1;
+            return (tree[l].parent)->index;
+        }
+        /**
+         * Returns the right innermost pair in a band between l and j
+        */
+        int Bp(int l, int j){
+            if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
+            if ((tree[l].parent)->pair > j) return -1;
+            return (tree[l].parent)->pair;
+        }
+        /**
+         * Returns the right outermostpair in a band between l and j
+        */
+        int B(int l, int j){
+            if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
+            if ((tree[l].parent)->pair > j) return -1;
+            else{
+                int lca = LCA(l,j);
+                for(int x:tree[lca].children){
+                    if(x<j && tree[x].pair > l) return tree[x].pair;
+                }
+                return -10000;
+            }
+        }
+        // Returns the left outermost pair in a band between i and l
+        int b(int i, int l){
+            if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
+            if ((tree[l].parent)->index < i) return -1;
+            else{
+                int lca = LCA(i,l);
+                for(int x:tree[lca].children){
+                    if(x<l && tree[x].pair > l) return x;
+                }
+                return -10000;
+            }
+        }
+        /**
+         * Returns whether there the area between i and j is weakly closed, specifically if all pairs in the [i,j] stay within [i,j]
+        */
+        int weakly_closed(int i, int j){
+            if((i > tree[i].pair && tree[i].pair > 0) || tree[j].pair> j) return 0;
+            // if((tree[i].pair > i && tree[j].pair > j) ||(tree[i].pair < i && tree[j].pair < j && tree[i].pair != -1 && tree[j].pair != -1)) return 0;
+            if(depthArr[FAI[i]] == depthArr[FAI[j]] && tree[i].parent->index == tree[j].parent->index) return 1;
+            else return 0;
+        }
+
+
+
+
+        ~sparse_tree(){
+        }
+};
+
+// int main(int argc, char const *argv[])
+// {
+//     // std::string input = ".((..((.(...).))..((...))..)).";
+//     std::string input = "((...((...)).))";
+//     // std::string input = "(.(((((((........)))))....(((........))))).).(((((((((..(((((...(((((((.....(((.((((((...((((((((.(...((((((((((.(((((.(((.(((((((((.((((((((.((((....)))).)))))))).))))........(((((......(((....(((....)))....)))....))))).))))).)))..)))))))...))))))))).)))))))).)))))))))))))))).....)))))..)))))))))....";
+//     int n = input.length();
+//     sparse_tree tree(input,n);
+
+//     // std::cout << tree.tree[8].parent->index << std::endl;
+//     // std::cout << tree.bp(3,8) << std::endl;
+//     // std::cout << tree.Bp(3,8) << std::endl;
+//     // std::cout << tree.b(3,8) << std::endl;
+//     // std::cout << tree.B(3,8) << std::endl;
+
+//     // std::cout << tree.bp(8,13) << std::endl;
+//     std::cout << tree.weakly_closed(3,13) << std::endl;
+//     std::cout << tree.tree[3].parent->index << "   " << tree.tree[3].parent->index << std::endl;
+//     // std::cout << tree.b(8,13) << std::endl;
+//     // std::cout << tree.B(8,13) << std::endl;
+    
+//     // std::cout << tree.Bp(4,26) << std::endl;
+//     // std::cout << tree.bp(4,26) << std::endl;
+//     // std::cout << tree.Bp(0,29) << std::endl;
+//     // std::cout << tree.bp(0,29) << std::endl;
+//     // std::cout << "b: " << tree.b(9,22) << std::endl;
+//     // std::cout << "B: " << tree.B(9,22) << std::endl;
+//     // for(auto x:tree.euler){
+//     //     std::cout << x << " ";
+//     // }
+//     // //  std::cout << std::endl;
+//     // // for(int i= 0; i<tree.euler.size();++i){
+//     // //     std::cout << tree.level[i] << " ";
+//     // // }
+//     // std::cout << std::endl;
+//     // for(int i= 0; i<tree.euler.size();++i){
+//     //     std::cout << tree.depthArr[i] << " ";
+//     // }
+//     // std::cout << std::endl;
+//     // for(int i= 0; i<tree.euler.size();++i){
+//     //     std::cout << tree.FAI[i] << " ";
+//     // }
+//     // std::cout << std::endl;
+// for(int j =0;j<4;++j){
+//     for(int i = 0; i<tree.euler.size();++i){
+        
+//             std::cout << tree.sparse_table[i][j] << " ";
+        
+        
+//     }
+//     std::cout << std::endl;
+// }
+
+// return 0;
+// }

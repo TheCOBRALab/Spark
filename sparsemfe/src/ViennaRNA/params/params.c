@@ -421,7 +421,7 @@ get_scaled_params(vrna_md_t *md)
   params->TerminalAU            = RESCALE_dG(TerminalAU37, TerminalAUdH, tempf);
   params->DuplexInit            = RESCALE_dG(DuplexInit37, DuplexInitdH, tempf);
   params->MLbase                = RESCALE_dG(ML_BASE37, ML_BASEdH, tempf);
-  // Pseudoknot
+  // Pseudoknot -- added by Mateo 2/14/23
   params->PS_penalty            = 960;
   params->PSM_penalty           = 1007; 
   params->PSP_penalty           = 1500; 
