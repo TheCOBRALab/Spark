@@ -1,5 +1,0 @@
-/home/mgray7/sparsemfeknot/sparsemfe/build/CMakeFiles/rebuild_cache.dir
-/home/mgray7/sparsemfeknot/sparsemfe/build/CMakeFiles/edit_cache.dir
-/home/mgray7/sparsemfeknot/sparsemfe/build/CMakeFiles/tests.dir
-/home/mgray7/sparsemfeknot/sparsemfe/build/CMakeFiles/SparseMFEFold.dir
-/home/mgray7/sparsemfeknot/sparsemfe/build/CMakeFiles/RNA.dir

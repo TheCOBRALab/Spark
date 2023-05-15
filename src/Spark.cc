@@ -64,8 +64,6 @@ V(i,j) + b  < min {
 
 #include <sstream>
 
-#include <matrix.hh>
-
 #include <limits>
 
 #include <vector>
@@ -74,9 +72,9 @@ V(i,j) + b  < min {
 #include <cstring>
 #include <string>
 #include <cassert>
-#include <numeric>
+// #include <numeric>
 
-#include "base.hh"
+#include "base_types.hh"
 #include "trace_arrow.hh"
 #include "sparse_tree.cc"
 
@@ -85,9 +83,8 @@ extern "C" {
 #include "ViennaRNA/loops/all.h"
 #include "ViennaRNA/params/io.h"
 }
-
+#include <matrix.hh>
 #include "cmdline.hh"
-#include <omp.h>
 
 #include <fstream>
 

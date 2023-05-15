@@ -1,98 +1,69 @@
-[![Build Status](https://travis-ci.org/s-will/SparseMFEFold.svg?branch=master)](https://travis-ci.org/s-will/SparseMFEFold)
+# SparseRNAFolD
 
-SparseMFEFold
-============================================================
+#### Description:
+Software implementation of SparseRNAFolD.      
+SparseRNAFolD is an algorithm for predicting the pseudoknotted secondary structure of RNA using relaxed Hierarchical Folding.
 
-Space-efficient sparse MFE folding of RNAs with sparse traceback
-------------------------------------------------------------
-
-Implementation of the method presented in the manuscript Sparse RNA
-folding revisited: space-efficient minimum free energy structure
-prediction by Sebastian Will and Hosna Jabbari
-
-Software written by Sebastian Will
+#### Supported OS: 
+Linux, macOS
 
 
-The program demonstrates space-efficient sparsification including
-trace-back of an RNA (loop-based) free energy minimization algorithm,
-which performs RNA folding equivalent to RNAfold -d0.
+### Installation:  
+Requirements: A compiler that supports C++11 standard (tested with g++ version 4.9.0 or higher), Pthreads, and CMake version 3.1 or greater.    
 
-Trace-back from a space efficiently sparsified algorithm is
-non-trivial, since the DP-matrices are never completely stored during
-the forward evaluation of the DP recursions. Thus, the trace-back
-requires recomputation. However, since many matrix entries can not be
-efficiently recomputed in trace back, we store trace arrows to such
-entries. To save space, trace arrows are gc'ed and trace arrows to
-candidates are omitted and reconstructed in trace back.
-
-
-Installation
-========================================
-
-Please install from source. The package is easy to compile and install via autotool's ./configure; make; make install.
-After cloning of downloading the archive from github, this requires to set
-up the autotools system by
+[CMake](https://cmake.org/install/) version 3.1 or greater must be installed in a way that HFold can find it.    
+To test if your Mac or Linux system already has CMake, you can type into a terminal:      
 ```
-auoreconf -i
+cmake --version
 ```
-If the Vienna RNA package is installed in a non-standard path ```$VIENNA_RNA_HOME```, one would
-typically go on to install in ```$INSTALLDIR``` by
-```
-./configure --prefix $INSTALLDIR PKG_CONFIG_PATH=$VIENNA_RNA_HOME/lib/pkgconfig
-make
-make install
-```
+If it does not print a cmake version greater than or equal to 3.1, you will have to install CMake depending on your operating system.
 
+[Linux instructions source](https://geeksww.com/tutorials/operating_systems/linux/installation/downloading_compiling_and_installing_cmake_on_linux.php)
 
-Dependencies:
-  - RNA library of the Vienna RNA package 2.x
-  - gengetopt
+#### Steps for installation   
+1. [Download the repository](https://github.com/mateog4712/SparseRNAFolD.git) and extract the files onto your system.
+2. From a command line in the root directory (where this README.md is) run
+```
+cmake -H. -Bbuild
+cmake --build build
+```   
+If you need to specify a specific compiler, such as g++, you can instead run something like   
+```
+cmake -H. -Bbuild -DCMAKE_CXX_COMPILER=g++
+cmake --build build
+```   
+This can be useful if you are getting errors about your compiler not having C++11 features.
+
+After installing you can move the executables wherever you wish, but you should not delete or move the simfold folder, or you must recompile the executables. If you move the folders and wish to recompile, you should first delete the created "build" folder before recompiling.
 
 Help
 ========================================
 
 ```
-Usage: sparsemfefold[options] [sequence]
+Usage: SparseRNAFolD[options] [input sequence]
 ```
 
-Read RNA sequence from stdin or cmdline; predict minimum
-free energy and optimum structure using the time- and
-space-efficient MFE RNA folding algorithm of Will and
-Jabbari, 2015. The results are equivalent to RNAfold -d0,
-but the computation takes less time (for long sequences) and
-much less space.
+Read input file from cmdline; predict minimum free energy and optimum structure using the time- and space-efficient MFE RNA folding algorithm.
 
 ```
   -h, --help             Print help and exit
   -V, --version          Print version and exit
   -v, --verbose          Turn on verbose output
-  -m, --mark-candidates  Represent candidate base pairs 
-                         by square brackets
+  -m, --mark-candidates  Represent candidate base pairs by square brackets
+  -r, --input-structure  Give a restricted structure as an input structure
+  -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')
+  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.
+  --noGC                 Turn off garbage collection and related overhead
 ```
 
-The input sequence is read from standard input, unless it is
-given on the command line.
-
-
-Examples
-========================================
-
-Call with sequence from stdin in default mode (compatible with RNAfold -d0)
----------------------------------------------------------------------------
+#### Example:
+    assume you are in the KnotAli directory
+    ./build/src/SparseRNAFolD GGGGAAAACCCC
+    ./build/src/SparseRNAFolD GGGGAAAACCCC -r "((........))" -d1
 
 ```
-$ echo UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA \
-       | SparseMFEFold      
-UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA
-.(((((..(..(((.(((((((...))))))).)))...)..))))).... (-6.00)
-```
+./build/src/Spark -m -v UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA
 
-Call with sequence on command line, mark candidates, report trace arrow and candidate counts (verbose)
-------------------------------------------------------------------------------------------------------
-
-```
-$ echo UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA \
-       | SparseMFEFold -m -v
 UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA
 .[[(((..(..[((.[[[([[[...]]])]]].))]...)..)))]].... (-6.00)
 
@@ -106,3 +77,6 @@ Can cap:118
 TAs num:165
 TAs cap:169
 ```
+    
+## Results
+Results can be found at https://github.com/mateog4712/SparseRNAFolD-RawData

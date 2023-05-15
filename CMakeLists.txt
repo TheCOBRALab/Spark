@@ -7,13 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \ -fconcepts \ -O3")
 
-set(sparsemfefold_SOURCE
+set(spark_SOURCE
     src/cmdline.cc
-    # src/trace_arrow.cc 
-    # src/SparseMFEFold.cc
-    # src/SparseMFEFold_1.cc
     src/sparse_tree.cc
-    src/SparseMFEFold_1.cc
+    src/Spark.cc
     src/trace_arrow.cc 
 )
 
@@ -92,11 +89,11 @@ add_library(RNA STATIC ${vienna_SOURCE})
 
 target_include_directories(RNA PRIVATE .)
 
-add_executable(SparseMFEFold ${sparsemfefold_SOURCE})
+add_executable(Spark ${spark_SOURCE})
 
 add_executable(tests ${test_SOURCE})
 
-target_link_libraries(SparseMFEFold PRIVATE RNA)
+target_link_libraries(Spark PRIVATE RNA)
 
 target_link_libraries(tests PRIVATE RNA)
 
