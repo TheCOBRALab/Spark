@@ -269,7 +269,7 @@ class sparse_tree{
         /**
          * Returns whether there the area between i and j is weakly closed, specifically if all pairs in the [i,j] stay within [i,j]
         */
-        int weakly_closed(int i, int j){
+        bool weakly_closed(int i, int j){
             if((i > tree[i].pair && tree[i].pair > 0) || tree[j].pair> j) return 0;
             // if((tree[i].pair > i && tree[j].pair > j) ||(tree[i].pair < i && tree[j].pair < j && tree[i].pair != -1 && tree[j].pair != -1)) return 0;
             if(depthArr[FAI[i]] == depthArr[FAI[j]] && tree[i].parent->index == tree[j].parent->index) return 1;
