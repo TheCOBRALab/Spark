@@ -1,9 +1,5 @@
-#include <iostream>
 #include <iomanip>
-#include <limits>
 #include <vector>
-#include <cmath>
-
 
 #define maxSize 14 // 2^14 for sparse table
 

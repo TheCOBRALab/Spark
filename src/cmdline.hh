@@ -9,8 +9,8 @@ extern std::string input_structure;
 // The parameter file location
 extern std::string parameter_file;
 
-// The number of dangles
-extern int dangles;
+// The dangle model
+extern int dangle_model;
 
 /** @brief Where the command line options are stored */
 struct args_info
