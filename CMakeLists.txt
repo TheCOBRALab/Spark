@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \ -fconcepts \ -O3")
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \ -fconcepts \ -g")
 
 set(spark_SOURCE
     src/cmdline.cc

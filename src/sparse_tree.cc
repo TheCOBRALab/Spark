@@ -86,7 +86,7 @@ class sparse_tree{
          * By using the sparse table which holds the the maximum height node for 2^dx ahead of the node,
          * we can cover the full area between l and r and find the max height node
          */
-        int query(int l,int r){
+        const int query(int l,int r) const{
             int d = r-l;
             int dx = logn[d];
             if (l==r) return l;
@@ -103,7 +103,7 @@ class sparse_tree{
          * From query, we get the node with the maximum height between the two (the parent)
          * and we find the actual position in the dfs
         */
-        int LCA(int i,int j){
+        const int LCA(int i,int j) const{
                     // trivial case
             if (i==j) return i;
 
@@ -223,7 +223,7 @@ class sparse_tree{
         /**
          * Returns the left innermost pair in a band between i and l
         */
-        int bp(int i, int l ){
+        const int bp(int i, int l ) const{
             if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
             if ((tree[l].parent)->index < i) return -1;
             return (tree[l].parent)->index;
@@ -231,7 +231,7 @@ class sparse_tree{
         /**
          * Returns the right innermost pair in a band between l and j
         */
-        int Bp(int l, int j){
+        const int Bp(int l, int j) const{
             if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
             if ((tree[l].parent)->pair > j) return -1;
             return (tree[l].parent)->pair;
@@ -239,7 +239,7 @@ class sparse_tree{
         /**
          * Returns the right outermostpair in a band between l and j
         */
-        int B(int l, int j){
+        const int B(int l, int j) const{
             if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
             if ((tree[l].parent)->pair > j) return -1;
             else{
@@ -251,7 +251,7 @@ class sparse_tree{
             }
         }
         // Returns the left outermost pair in a band between i and l
-        int b(int i, int l){
+        const int b(int i, int l) const{
             if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
             if ((tree[l].parent)->index < i) return -1;
             else{
@@ -265,7 +265,7 @@ class sparse_tree{
         /**
          * Returns whether there the area between i and j is weakly closed, specifically if all pairs in the [i,j] stay within [i,j]
         */
-        bool weakly_closed(int i, int j){
+        const bool weakly_closed(int i, int j) const{
             if((i > tree[i].pair && tree[i].pair > 0) || tree[j].pair> j) return 0;
             // if((tree[i].pair > i && tree[j].pair > j) ||(tree[i].pair < i && tree[j].pair < j && tree[i].pair != -1 && tree[j].pair != -1)) return 0;
             if(depthArr[FAI[i]] == depthArr[FAI[j]] && tree[i].parent->index == tree[j].parent->index) return 1;

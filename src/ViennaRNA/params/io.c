@@ -468,6 +468,7 @@ set_parameters_from_string(char       **file_content,
   /* store file name of parameter data set */
   free(last_param_file);
   last_param_file = (name) ? strdup(name) : NULL;
+  // free(last_param_file);
 
   if (strncmp(file_content[line_no++], "## RNAfold parameter file v2.0", 30) != 0) {
     vrna_message_warning("Missing header line in file.\n"

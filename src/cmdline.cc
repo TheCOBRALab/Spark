@@ -34,6 +34,8 @@ const char *args_info_help[] = {
   "  -p, --pseudoknot       Turn on Psuedoknot prediction",
   "  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.\n",
   "      --noGC             Turn off garbage collection and related overhead",
+  "      --noGU             Turn off G-U and U-G base pairing",
+
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
   
 };
@@ -58,6 +60,7 @@ static void init_args_info(struct args_info *args_info)
   args_info->pseudoknot_help = args_info_help[6] ;
   args_info->paramFile_help = args_info_help[7] ;
   args_info->noGC_help = args_info_help[8] ;
+  args_info->noGU_help = args_info_help[9] ;
 
   
 }
@@ -109,6 +112,7 @@ static void clear_given (struct args_info *args_info)
   args_info->pseudoknot_given = 0 ;
   args_info->paramFile_given = 0 ;
   args_info->noGC_given = 0 ;
+  args_info->noGU_given = 0 ;
 }
 
 static void clear_args (struct args_info *args_info)
@@ -303,6 +307,7 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "pseudoknot",	0, NULL, 'p' },
         { "paramFile",	required_argument, NULL, 'P' },
         { "noGC",	0, NULL, 0 },
+        { "noGU",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -396,6 +401,16 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
             if (update_arg( 0 , 
                  0 , &(args_info->noGC_given),
                 &(local_args_info.noGC_given), optarg, 0, 0, ARG_NO, 0, 0,"noGC", '-', additional_error))
+              goto failure;
+          
+          }
+          if (strcmp (long_options[option_index].name, "noGU") == 0)
+          {
+          
+          
+            if (update_arg( 0 , 
+                 0 , &(args_info->noGU_given),
+                &(local_args_info.noGU_given), optarg, 0, 0, ARG_NO, 0, 0,"noGU", '-', additional_error))
               goto failure;
           
           }

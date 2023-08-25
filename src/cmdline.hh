@@ -24,6 +24,8 @@ struct args_info
   const char *pseudoknot_help; /**< @brief Turn on pseudoknot prediction */
   const char *paramFile_help; /**< @brief Use a separate parameter list */
   const char *noGC_help; /**< @brief Turn off garbage collection and related overhead help description.  */
+  const char *noGU_help; /**< @brief Turn off garbage collection and related overhead help description.  */
+
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -34,6 +36,8 @@ struct args_info
   unsigned int pseudoknot_given ;	/**< @brief Whether pseudoknot was given.  */
   unsigned int paramFile_given ; /** <@brief whether a parameter file was given */
   unsigned int noGC_given ;	/**< @brief Whether noGC was given.  */
+  unsigned int noGU_given ;	/**< @brief Whether noGC was given.  */
+
 
   char **inputs ; /**< @brief unnamed options (options without names) */
   unsigned inputs_num ; /**< @brief unnamed options number */
