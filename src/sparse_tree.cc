@@ -247,7 +247,7 @@ class sparse_tree{
                 for(int x:tree[lca].children){
                     if(x<j && tree[x].pair > l) return tree[x].pair;
                 }
-                return -10000;
+                return -100;
             }
         }
         // Returns the left outermost pair in a band between i and l
@@ -259,7 +259,7 @@ class sparse_tree{
                 for(int x:tree[lca].children){
                     if(x<l && tree[x].pair > l) return x;
                 }
-                return -10000;
+                return -100;
             }
         }
         /**
@@ -268,8 +268,13 @@ class sparse_tree{
         const bool weakly_closed(int i, int j) const{
             if((i > tree[i].pair && tree[i].pair > 0) || tree[j].pair> j) return 0;
             // if((tree[i].pair > i && tree[j].pair > j) ||(tree[i].pair < i && tree[j].pair < j && tree[i].pair != -1 && tree[j].pair != -1)) return 0;
-            if(depthArr[FAI[i]] == depthArr[FAI[j]] && tree[i].parent->index == tree[j].parent->index) return 1;
-            else return 0;
+            // if(depthArr[FAI[i]] == depthArr[FAI[j]] && tree[i].parent->index == tree[j].parent->index) return 1;
+
+            if((void*)tree[i].parent == (void*) tree[j].parent) {
+                if(depthArr[FAI[i]] == depthArr[FAI[j]]) 
+                    return 1;
+            }
+            return 0;
         }
 
 

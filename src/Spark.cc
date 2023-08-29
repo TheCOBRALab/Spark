@@ -665,9 +665,9 @@ const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &C
 
 			cand_pos_t Bp_kj = tree.Bp(k,j);
 			cand_pos_t B_kj = tree.B(k,j);
-			cand_pos_t b_kj = tree.tree[B_kj].pair;
+			cand_pos_t b_kj = (B_kj>0) ? tree.tree[B_kj].pair : -2;
 			cand_pos_t bp_ik = tree.bp(i,k);
-			cand_pos_t Bp_ik = tree.tree[bp_ik].pair;
+			cand_pos_t Bp_ik = (bp_ik>0) ? tree.tree[bp_ik].pair : -2;
 			energy_t BE_energy = INF;
 			if (tree.tree[k].parent->index > -1 && B_kj >= 0 && Bp_kj >= 0){
 				// if (b_ij >= 0 && k < b_ij){
@@ -739,12 +739,11 @@ const std::vector<energy_t> recompute_WVe(const std::vector< cand_list_td1 > &CL
 	assert(max_j<=n);
 	std::vector<energy_t> temp;
 	temp.resize(n+1,INF);
-	
 	for ( cand_pos_t j=i+TURN+1; j<=max_j; j++ ) {
 		energy_t wve = INF;
 		for ( auto it = CLVP[j].begin();CLVP[j].end()!=it && it->first>=i ; ++it ) {
 			cand_pos_t k = it->first;
-			energy_t vp_kj = it->third >> 2;
+			energy_t vp_kj = it->second;
 
 			bool can_pair = up[k-1] >= (k-i);
 			if(can_pair) wve = std::min( wve, static_cast<energy_t>(cp_penalty*(k-i)) + vp_kj );
@@ -755,21 +754,26 @@ const std::vector<energy_t> recompute_WVe(const std::vector< cand_list_td1 > &CL
 	return temp;
 }
 
-const std::vector<energy_t> recompute_WV(const std::vector<energy_t>& WVe, const std::vector< cand_list_td1 > &CL, const std::vector< cand_list_t > &CLWMB, const std::vector< cand_list_td1 > &CLVP,const std::vector<energy_t> &WIP, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const std::vector<Node> &tree) {
+const std::vector<energy_t> recompute_WV(const std::vector<energy_t>& WVe, const std::vector< cand_list_td1 > &CL, const std::vector< cand_list_t > &CLWMB, const std::vector< cand_list_td1 > &CLVP,const std::vector<energy_t> &WIP, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j,paramT* params, const std::vector<Node> &tree) {
 	assert(i>=1);
 	assert(max_j<=n);
 	std::vector<energy_t> temp;
 	temp.resize(n+1,INF);
 
-	for ( cand_pos_t j=i+2*TURN+3; j<=max_j; j++ ) {
+	for ( cand_pos_t j=i+TURN+1; j<=max_j; j++ ) {
 		energy_t wv = INF;
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
 			
 			cand_pos_t k = it->first;
 			energy_t v_kj = it->third >> 2;
+			Dangle d = it->third & 3;
+			cand_pos_t num = 0;
+			if(d == 1 || d==2) num = 1;
+			else if(d==3 && params->model_details.dangles == 1) num =2;
+			energy_t fix = num*cp_penalty - num*params->MLbase;
 			
-			wv = std::min( wv, WVe[k-1]  + v_kj );
-			wv = std::min( wv, temp[k-1]  + v_kj );
+			wv = std::min( wv, WVe[k-1]  + v_kj +fix);
+			wv = std::min( wv, temp[k-1]  + v_kj +fix);
 		}
 		// How do I do the VP one?
 
@@ -1236,7 +1240,7 @@ void trace_WMB(const std::string& seq, const std::vector< cand_list_td1 >& CL, c
 }
 
 void trace_VP(const std::string& seq, const std::vector< cand_list_td1 >& CL, const std::vector< cand_list_t >& CLWMB,const std::vector< cand_list_t >& CLBE,const std::vector< cand_list_td1 >& CLVP, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &WM, std::vector<energy_t> &WM2,const std::vector<energy_t> &WI_Bbp,const std::vector<energy_t> &WIP_Bbp,const std::vector<energy_t> &WI_bBp, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j, energy_t e, const sparse_tree &tree){
-	std::cout << "VP at " << i << " and " << j << " with e = " << e << std::endl;
+	printf("VP at %d and %d with %d\n",i,j,e);
 	structure[i] = '[';
 	structure[j] = ']';
 
@@ -1301,18 +1305,22 @@ void trace_VP(const std::string& seq, const std::vector< cand_list_td1 >& CL, co
 	}
 
 // 	// If not other cases, must be WV multiloop
-	const std::vector<energy_t> temp = 	recompute_WVe(CLVP,n,i,j,tree.tree,tree.up);
-	const std::vector<energy_t> WIP = recompute_WIP(CL,CLWMB,n,i,j,tree.tree);
-	const std::vector<energy_t> temp2 = recompute_WV(temp,CL,CLWMB,CLVP,WIP,n,i,j,tree.tree);
+	const std::vector<energy_t> temp = 	recompute_WVe(CLVP,n,i+1,j-1,tree.tree,tree.up);
+	const std::vector<energy_t> WIP = recompute_WIP(CL,CLWMB,n,i+1,j-1,tree.tree);
+	const std::vector<energy_t> temp2 = recompute_WV(temp,CL,CLWMB,CLVP,WIP,n,i+1,j-1,params,tree.tree);
 
 	trace_WV(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,temp,WIP,temp2,n,mark_candidates,i+1,j-1,temp2[j-1],tree);
 
 
 }
 void trace_WVe(const std::string& seq, const std::vector< cand_list_td1 >& CL, const std::vector< cand_list_t >& CLWMB,const std::vector< cand_list_t >& CLBE,const std::vector< cand_list_td1 >& CLVP, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &WM, std::vector<energy_t> &WM2,const std::vector<energy_t> &WI_Bbp,const std::vector<energy_t> &WIP_Bbp,const std::vector<energy_t> &WI_bBp,const std::vector<energy_t> WVe, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j, energy_t e, const sparse_tree &tree){
+	printf("WVe at %d and %d with %d\n",i,j,e);
 
 	if (i+TURN+1>=j) return;
-	if(WVe[j] == WVe[j-1] + cp_penalty)  trace_WVe(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,WVe,n,mark_candidates,i,j-1,WVe[j-1],tree);
+	if(WVe[j] == WVe[j-1] + cp_penalty)  {
+		trace_WVe(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,WVe,n,mark_candidates,i,j-1,WVe[j-1],tree);
+		return;
+	}
 	for ( auto it = CLVP[j].begin();CLVP[j].end()!=it && it->first>i; ++it ) {
 		cand_pos_t k = it->first;
 		if(e == static_cast<energy_t>(cp_penalty*(k-i)) + it->second){
@@ -1325,20 +1333,88 @@ void trace_WVe(const std::string& seq, const std::vector< cand_list_td1 >& CL, c
 
 
 void trace_WV(const std::string& seq, const std::vector< cand_list_td1 >& CL, const std::vector< cand_list_t >& CLWMB,const std::vector< cand_list_t >& CLBE,const std::vector< cand_list_td1 >& CLVP, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &WM, std::vector<energy_t> &WM2,const std::vector<energy_t> &WI_Bbp,const std::vector<energy_t> &WIP_Bbp,const std::vector<energy_t> &WI_bBp,const std::vector<energy_t> &WVe,const std::vector<energy_t> &WIP, const std::vector<energy_t> &WV, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j, energy_t e, const sparse_tree &tree){
-	std::cout << "WV at " << i << " and " << j << " with e = " << e << std::endl;
+	printf("WV at %d and %d with %d\n",i,j,e);
 
-	if(WV[j] == WV[j-1] + cp_penalty)  trace_WV(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,WVe,WIP,WV,n,mark_candidates,i,j-1,WV[j-1],tree);
+	if(WV[j] == WV[j-1] + cp_penalty)  {
+		trace_WV(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,WVe,WIP,WV,n,mark_candidates,i,j-1,WV[j-1],tree);
+		return;
+	}
 
 	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>i; ++it ) {
 		cand_pos_t k = it->first;
-		if(e == WV[k-1] + it->second){
+		energy_t wm_v = it->third >> 2;
+		Dangle d = it->third & 3;
+		cand_pos_t num = 0;
+		if(d == 1 || d==2) num = 1;
+		else if(d==3 && params->model_details.dangles == 1) num =2;
+		energy_t fix = num*cp_penalty - num*params->MLbase;
+
+		if(e == WV[k-1] + wm_v + fix){
+			cand_pos_t m = k;
+			cand_pos_t l = j;
+			pair_type ptype = 0;
+			energy_t v = it->second;
+			switch(d){
+				case 0:
+					ptype= pair[S[m]][S[l]];
+					v = wm_v - E_MLstem(ptype,-1,-1,params);
+					break;
+				case 1:
+					m=k+1;
+					ptype= pair[S[m]][S[l]];
+					v = wm_v - E_MLstem(ptype,S[k],-1,params) - params->MLbase;
+					break;
+				case 2:
+					l=j-1;
+					ptype= pair[S[m]][S[l]];
+					v = wm_v - E_MLstem(ptype,-1,S[j],params) - params->MLbase;
+					break;
+				case 3:
+					if(params->model_details.dangles == 1){
+						m=k+1;
+						l=j-1;
+						ptype= pair[S[m]][S[l]];
+						v = wm_v - E_MLstem(ptype,S[k],S[j],params) - 2*params->MLbase;
+					}
+					break;
+			}
+			
 			trace_WV(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,WVe,WIP,WV,n,mark_candidates,i,k-1,WV[k-1],tree);
-			trace_V(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,n,mark_candidates,j,j,it->second,tree);			
+			trace_V(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,n,mark_candidates,m,l,v,tree);			
 			return;
 		}
-		if(e == WVe[k-1] + it->second){
-			trace_WVe(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,WVe,n,mark_candidates,i,k-1,WV[k-1],tree);
-			trace_V(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,n,mark_candidates,j,j,it->second,tree);			
+		if(e == WVe[k-1] + wm_v + fix){
+			cand_pos_t m = k;
+			cand_pos_t l = j;
+			pair_type ptype = 0;
+			energy_t v = it->second;
+			
+			switch(d){
+				case 0:
+					ptype= pair[S[m]][S[l]];
+					v = wm_v - E_MLstem(ptype,-1,-1,params);
+					break;
+				case 1:
+					m=k+1;
+					ptype= pair[S[m]][S[l]];
+					v = wm_v - E_MLstem(ptype,S[k],-1,params) - params->MLbase;
+					break;
+				case 2:
+					l=j-1;
+					ptype= pair[S[m]][S[l]];
+					v = wm_v - E_MLstem(ptype,-1,S[j],params) - params->MLbase;
+					break;
+				case 3:
+					if(params->model_details.dangles == 1){
+						m=k+1;
+						l=j-1;
+						ptype= pair[S[m]][S[l]];
+						v = wm_v - E_MLstem(ptype,S[k],S[j],params) - 2*params->MLbase;
+					}
+					break;
+			}
+			trace_WVe(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,WVe,n,mark_candidates,i,k-1,WVe[k-1],tree);
+			trace_V(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WI_bBp,n,mark_candidates,m,l,v,tree);			
 			return;
 		}
 	}
@@ -1370,7 +1446,7 @@ void trace_WV(const std::string& seq, const std::vector< cand_list_td1 >& CL, co
 
 
 void trace_WI(const std::string& seq, const std::vector< cand_list_td1 >& CL, const std::vector< cand_list_t >& CLWMB,const std::vector< cand_list_t >& CLBE,const std::vector< cand_list_td1 >& CLVP, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &WM, std::vector<energy_t> &WM2,const std::vector<energy_t> &WI_Bbp,const std::vector<energy_t> &WIP_Bbp,const std::vector<energy_t> &WI_Bp, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j, energy_t e, const sparse_tree &tree){
-	std::cout << "WI at " << i << " and " << j << " with e = " << e << std::endl;
+	printf("WI at %d and %d with %d\n",i,j,e);
 
 	if (i+TURN+1>=j) return;
 
@@ -1413,7 +1489,7 @@ void trace_WI(const std::string& seq, const std::vector< cand_list_td1 >& CL, co
 	}
 }
 void trace_WIP(const std::string& seq, const std::vector< cand_list_td1 >& CL, const std::vector< cand_list_t >& CLWMB,const std::vector< cand_list_t >& CLBE,const std::vector< cand_list_td1 >& CLVP, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &WM, std::vector<energy_t> &WM2,const std::vector<energy_t> &WI_Bbp,const std::vector<energy_t> &WIP_Bbp,const std::vector<energy_t> &WI_Bp,const std::vector<energy_t> &WIP, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j, energy_t e, const sparse_tree &tree){
-	std::cout << "WIP at " << i << " and " << j << " with e = " << e;
+	printf("WIP at %d and %d with %d\n",i,j,e);
 
 	if (i+TURN+1>=j) return;
 
@@ -1450,7 +1526,7 @@ void trace_WIP(const std::string& seq, const std::vector< cand_list_td1 >& CL, c
 	}
 }
 void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, const std::vector< cand_list_t >& CLWMB,const std::vector< cand_list_t >& CLBE,const std::vector< cand_list_td1 >& CLVP, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &WM, std::vector<energy_t> &WM2,const std::vector<energy_t> &WI_Bbp,const std::vector<energy_t> &WIP_Bbp,const std::vector<energy_t> &WI_Bp, std::vector<energy_t> &WMBP, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j, energy_t e, const sparse_tree &tree){
-	std::cout << "WMBP at " << i << " and " << j << " with e = " << e << std::endl;
+	printf("WMBP at %d and %d with %d\n",i,j,e);
 
 	cand_pos_t bp_ij = tree.bp(i,j);
 	energy_t VP_ij = INF;
@@ -1466,11 +1542,12 @@ void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, 
 		if(k==i) VP_ij = it->second; //second?
 
 		cand_pos_t Bp_kj = tree.Bp(k,j);
-		cand_pos_t bp_kj = tree.tree[Bp_kj].pair;
+		cand_pos_t bp_kj = (Bp_kj>0) ? tree.tree[Bp_kj].pair : -2;
 		cand_pos_t B_kj = tree.B(k,j);
-		cand_pos_t b_kj = tree.tree[B_kj].pair;
+		// Need to make sure I'm not doing tree.tree[-2].pair
+		cand_pos_t b_kj = (B_kj>0) ? tree.tree[B_kj].pair : -2;
 		cand_pos_t bp_ik = tree.bp(i,k);
-		cand_pos_t Bp_ik = tree.tree[bp_ik].pair;
+		cand_pos_t Bp_ik = (bp_ik>0) ? tree.tree[bp_ik].pair : -2;
 		energy_t BE_energy = INF;
 		if (tree.tree[k].parent->index > -1 && B_kj >= 0 && Bp_kj >= 0){
 			// if (b_ij >= 0 && k < b_ij){
@@ -1534,7 +1611,7 @@ void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, 
 
 }
 void trace_BE(const std::string& seq, const std::vector< cand_list_td1 >& CL, const std::vector< cand_list_t >& CLWMB,const std::vector< cand_list_t >& CLBE,const std::vector< cand_list_td1 >& CLVP, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &WM, std::vector<energy_t> &WM2,const std::vector<energy_t> &WI_Bbp,const std::vector<energy_t> &WIP_Bbp,const std::vector<energy_t> &WI_Bp, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t ip, energy_t e, const sparse_tree &tree){
-	std::cout << "BE at " << i << " and " << tree.tree[i].pair << " with e = " << e << std::endl;
+	printf("BE at %d and %d with %d\n",i,ip,e);
 	structure[i] = '(';
 	cand_pos_t j = tree.tree[i].pair;
 	structure[j] = ')';
@@ -1600,9 +1677,14 @@ energy_t compute_WV_WVe(cand_pos_t i, cand_pos_t j, cand_pos_t bound, std::vecto
 	
 	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>bound ; ++it ) {
 		cand_pos_t k = it->first;
-		energy_t val = it->second;
-		m1 = std::min(m1, WVe[k-1] + val);
-		m5 = std::min(m5, WV[k-1] + val);					
+		energy_t val = it->third >> 2;
+		Dangle d = it->third & 3;
+		cand_pos_t num = 0;
+		if(d == 1 || d==2) num = 1;
+		else if(d==3 && params->model_details.dangles == 1) num =2;
+		energy_t fix = num*cp_penalty - num*params->MLbase;
+		m1 = std::min(m1, WVe[k-1] + val + fix);
+		m5 = std::min(m5, WV[k-1] + val+ fix);	
 	}
 
 	for ( auto it = CLWMB[j].begin();CLWMB[j].end()!=it && it->first>bound ; ++it ) {
@@ -1660,7 +1742,6 @@ energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, st
     bool empty_region_lip = (sparse_tree.up[ip-1] >= ip-l-1); // empty between l+1 and ip-1
     bool weakly_closed_ilp = sparse_tree.weakly_closed(i+1,lp-1); // weakly closed between i+1 and lp-1
 	bool weakly_closed_lip = sparse_tree.weakly_closed(l+1,ip-1); // weakly closed between l+1 and ip-1
-
         
     if (empty_region_ilp && empty_region_lip){
         m2 = (energy_t)round(params->e_intP_penalty*(double)ILoopE(S,S1,params,ptype_closing_iip,i,ip,lp,l)) + BE_energy;
@@ -1920,16 +2001,16 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 			}
 		}
 	}
-	energy_t vp_h = std::min({m1,m2,m3});
-	energy_t vp_iloop = std::min(m4,m5);
-	energy_t vp_split = m6;
+	
 
 	// case 6 and 7
 	cand_pos_t left_bound = std::min(Bp_ij,b_ij);
 	m6 = dwvp[j-1] + params->ap_penalty + 2*params->bp_penalty;
-	
-	vp = std::min({vp_h,vp_iloop,vp_split});
 
+	energy_t vp_h = std::min({m1,m2,m3});
+	energy_t vp_iloop = std::min(m4,m5);
+	energy_t vp_split = m6;
+	vp = std::min({vp_h,vp_iloop,vp_split});
 
 	if ( vp_iloop < std::min(vp_h,vp_split) ) {
 		if ( is_candidate(CLVP,cand_comp,best_k,best_l) ) {
@@ -1941,6 +2022,10 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 			register_trace_arrow(taVP,i,j,best_k,best_l,vp_iloop);
 		}
 	}
+	if(i==11 && j==56) printf("i is %d and j is %d and vp_h is %d and vp_int is %d and vp_split is %d and best_k is %d and best_l is %d\n",i,j,vp_h,vp_iloop,vp_split,best_k,best_l);
+	if(i==12 && j==54) printf("i is %d and j is %d and vp_h is %d and vp_int is %d and vp_split is %d and best_k is %d and best_l is %d\n",i,j,vp_h,vp_iloop,vp_split,best_k,best_l);
+	if(i==13 && j==53) printf("i is %d and j is %d and vp_h is %d and vp_int is %d and vp_split is %d and best_k is %d and best_l is %d\n",i,j,vp_h,vp_iloop,vp_split,best_k,best_l);
+
 	return vp;
 
 }
@@ -1976,7 +2061,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
     for (cand_pos_t i=n; i>0; --i) {
 		energy_t VP_i_split = INF;
 		if(pseudoknot){
-			for(cand_pos_t j=i;sparse_tree.tree[j].pair<0 && j<=n ;++j){
+			for(cand_pos_t j=i;j<=n && sparse_tree.tree[j].pair<0;++j){
 				WI[j] = (j-i+1)*params->PUP_penalty;
 			}
 		}
@@ -2015,8 +2100,9 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			energy_t wi_split = INF;
 			energy_t wip_split = INF;
 			for ( auto it=CL[j].begin();CL[j].end() != it;++it ) {
-				size_t k=it->first;
-				
+				cand_pos_t k=it->first;
+				if(i==5 &j==79) printf("i is %d and j is %d and k is %d and W[k-1] is %d and v is %d\n",i,j,k,W[k-1],it->fourth >> 2);
+
 				const energy_t v_kj = it->third >> 2;
 				const energy_t v_kjw = it ->fourth >> 2;
 				bool can_pair = sparse_tree.up[k-1] >= (k-i);
@@ -2046,7 +2132,8 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 
 				cand_pos_t k = it->first;
 				bool can_pair = sparse_tree.up[k-1] >= (k-i);
-				
+				if(i==5 &j==79) printf("i is %d and j is %d and k is %d and W[k-1] is %d wmb is %d\n",i,j,k,W[k-1],it->second);
+
 				// For W
 				energy_t wmb_kj = it->second + params->PS_penalty;
 				w_split = std::min( w_split, W[k-1] + wmb_kj );	
@@ -2220,10 +2307,10 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 
 				for ( auto const [key,val,val_wm,val_w] : CLVP[j] ) {
 					cand_pos_t k = key;
-					VP_j_split_wm = std::min(VP_j_split_wm,(val_wm >> 2));
-					VP_j_split_w = std::min(VP_j_split_w,(val_w >> 2));
+					VP_j_split_wm = std::min(VP_j_split_wm,(val_wm));
+					VP_j_split_w = std::min(VP_j_split_w,(val_w));
 				}
-				if(wm_vp < VP_j_split_wm || w_vp < VP_j_split_w){
+				if((VP(i_mod,j)) < VP_j_split_wm || VP(i_mod,j) < VP_j_split_w){
 					// energy_t w_enc = (w_vp << 2) | dvp2;
 					// energy_t wm_enc = (wm_vp << 2) | dvp1;
 					register_candidate(CLVP,i,j,VP(i_mod,j),VP(i_mod,j),VP(i_mod,j));
@@ -2297,11 +2384,11 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					WV[j] = wv;
 					WVe[j] = wve;
 				}
-				if(i==18 && j==45) printf("i is %d and j is %d and wve is %d\n",i,j,WVe[j]);
-				if(i==18 && j==49) printf("i is %d and j is %d and wve is %d\n",i,j,WVe[j]);
-				if(i==18 && j==73) printf("i is %d and j is %d and wv is %d\n",i,j,WV[j]);
+				// if(i==18 && j==45) printf("i is %d and j is %d and wve is %d\n",i,j,WVe[j]);
+				// if(i==18 && j==49) printf("i is %d and j is %d and wve is %d\n",i,j,WVe[j]);
+				// if(i==18 && j==73) printf("i is %d and j is %d and wv is %d\n",i,j,WV[j]);
 
-				if(i==17 && j==74) printf("i is %d and j is %d and wv is %d\n",i,j,WV[j]);
+				// if(i==17 && j==74) printf("i is %d and j is %d and wv is %d\n",i,j,WV[j]);
 
 
 				// ------------------------------------------------End of WV------------------------------------------------------
@@ -2312,6 +2399,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 													( (        (    (   (       (          )      )  ) )      )    )
 				i and ip are the outer base pair
 				lp and l are the closest encompassing base pair to i/ip
+														//    jp>i   j>jp  ip>i ip>j
 				jp and j are some inner base pair;j has the be the closing due to the j=i+4 setup we have
 				*/
 				// Start of BE
@@ -2320,7 +2408,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 				cand_pos_t jp = sparse_tree.tree[j].pair; // j's pair jp should be left side so jp = (
 				
 				// base case: i.j and ip.jp must be in G
-				if (ip > i && j > jp && ip > i && jp < j){ // Don't need to check if they are pairs separately because it is checked by virtue of these checks
+				if (jp > i && j > jp && ip > j && ip > i){ // Don't need to check if they are pairs separately because it is checked by virtue of these checks
 					
 					energy_t BE = compute_BE(i,j,ip,jp,CLBE,sparse_tree,S,S1,params,WIP_Bbp);
 					be = BE;
@@ -2334,19 +2422,51 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					
 				// // ------------------------------------------------End of BE---------------------------------------------------------
 			}
-			// if(i==1 && j==63) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			// if(i==2 && j==62) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			// if(i==3 && j==61) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			// if(i==49 && j==68) printf("i is %d and j is %d and v is %d\n",i,j,wm_v);
+			// if(i==50 && j==67) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			// if(i==22 && j==45) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
 			// if(i==4 && j==60) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
 			// if(i==5 && j==59) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			// if(i==6 && j==58) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			// if(i==1 && j==63) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
+			// if(i==44 && j==62) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
 			// if(i==7 && j==57) printf("i is %d and j is %d and wmbp is %d\n",i,j,WMBP[j]);
 
 
-			// if(i==13 && j==42) printf("i is %d and j is %d and be is %d\n",i,j,be);
-			// if(i==14 && j==42) printf("i is %d and j is %d and be is %d\n",i,j,be);
-			// if(i==15 && j==42) printf("i is %d and j is %d and be is %d\n",i,j,be);
+			if(i==14 && j==64) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==23 && j==28) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==22 && j==29) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==21 && j==30) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==20 && j==31) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==19 && j==32) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==18 && j==51) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==17 && j==52) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==16 && j==53) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==15 && j==54) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==38 && j==43) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==37 && j==44) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==36 && j==45) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==35 && j==46) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			if(i==34 && j==47) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			
+			if(i==11 && j==56) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
+			if(i==10 && j==57) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
+			if(i==8 && j==59) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
+			if(i==7 && j==60) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
+			if(i==6 && j==61) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
+			if(i==5 && j==62) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
+
+			if(i==12 && j==54) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+
+			if(i==11 && j==56) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			if(i==10 && j==57) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			if(i==8 && j==59) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			if(i==7 && j==60) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			if(i==6 && j==61) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			if(i==5 && j==62) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+
+			
+			
+			
+			// if(i==5 && j==79) printf("i is %d and j is %d and W[j-1] is %d\n",i,j,W[j-1]);
 			// if(i==16 && j==42) printf("i is %d and j is %d and be is %d\n",i,j,be);
 			// if(i==17 && j==42) printf("i is %d and j is %d and be is %d\n",i,j,be);
 			// if(i==18 && j==42) printf("i is %d and j is %d and be is %d\n",i,j,be);
@@ -2374,25 +2494,34 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 				w =std::min(w,w_wmb);
 				wm = std::min(wm,wm_wmb);
 			// }
-			w_wmb = (w_wmb << 2) | dw;
-			wm_wmb = (wm_wmb << 2) | dw;
-			if ( w_v < w_split || wm_v < wm_split || wi_v < wi_split || wip_v < wip_split || paired) { //wi_v < wi_split || wip_v < wip_split ||
-				cand_pos_t k_mod = k%(MAXLOOP+1);
-				// Encode the dangles into the energies
-				energy_t w_enc = (w_v << 2) | d;
-				energy_t wm_enc = (wm_v << 2) | d;
-				register_candidate(CL, i, j,V(i_mod,j), wm_enc,w_enc);
-				// always keep arrows starting from candidates
-				inc_source_ref_count(ta,i,j);
-			}	
-			if ( w_wmb < w_split || wm_wmb < wm_split || wi_wmb < wi_split || wip_wmb < wip_split) {
-		
-				register_candidate(CLWMB, i, j, WMB[j]);
-
-				// always keep arrows starting from candidates
-				inc_source_ref_count(ta,i,j); // should i increment this?
-			}	
+			// w_wmb = (w_wmb << 2) | dw;
+			// wm_wmb = (wm_wmb << 2) | dw;
+			// if(i==5 && j==77)printf("i is %d and j is %d and w_wmb is %d and w_split is %d\n",i,j,w_wmb,w_split);
+			// if(i==79 && j==96)printf("i is %d and j is %d and w_v is %d and wm_v is %d and wi_v is %d and wip_v is %d and w_split is %d and wm_split is %d and wi_split is %d and wip_split is %d\n",i,j,w_v,wm_v,wi_v,wip_v,w_split,wm_split,wi_split,wip_split);
+			// if(i==79 && j==96) printf("v is %d\n",V(i_mod,j));
+			// if(i==79 && j==96) printf("wmb is %d\n",WMB[j]);
+			if(V(i_mod,j) != INF){
+				if ( w_v < w_split || wm_v < wm_split || wi_v < wi_split || wip_v < wip_split || paired) {
+					cand_pos_t k_mod = k%(MAXLOOP+1);
+					// Encode the dangles into the energies
+					energy_t w_enc = (w_v << 2) | d;
+					energy_t wm_enc = (wm_v << 2) | d;
+					register_candidate(CL, i, j,V(i_mod,j), wm_enc,w_enc);
+					// always keep arrows starting from candidates
+					inc_source_ref_count(ta,i,j);
+				}	
+			}
+			if(WMB[j] != INF){
+				if ( w_wmb < w_split || wm_wmb < wm_split || wi_wmb < wi_split || wip_wmb < wip_split) {
 			
+					register_candidate(CLWMB, i, j, WMB[j]);
+
+					// always keep arrows starting from candidates
+					inc_source_ref_count(ta,i,j); // should i increment this?
+				}	
+			}	
+			if(i==1 && j==96) printf("i is %d and j is %d and wmb_split is %d\n",i,j,w_wmb);
+
 			W[j]       = w;
 			WM[j]      = wm;
 			WM2[j]     = std::min(wm2_split,WMB[j] + PSM_penalty + b_penalty);
@@ -2536,8 +2665,6 @@ main(int argc,char **argv) {
 	
 	cmdline_parser_free(&args_info);
 
-	std::cout << seq << std::endl;
-
 	int count = 0;
 	for(int i = 1;i<=n;++i){
 		if(tree.tree[i].pair > i || (tree.tree[i].pair < i && tree.tree[i].pair > 0)) count = 4;
@@ -2561,6 +2688,7 @@ main(int argc,char **argv) {
 	
 	std::ostringstream smfe;
 	smfe << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
+	std::cout << seq << std::endl;
 
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
 

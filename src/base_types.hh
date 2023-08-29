@@ -11,7 +11,7 @@ typedef uint_fast32_t cand_pos_tu;
 //! type of base pair
 typedef int_least32_t pair_type;
 //! type of dangle type
-typedef int_least8_t Dangle;
+typedef int_least32_t Dangle;
 //! type of base type
 typedef int_least16_t base_type;
 
