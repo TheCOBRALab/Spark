@@ -1754,6 +1754,7 @@ energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, st
         // get_WIP(lp+1,ip-1)
         // m3 = wiilp[l-1] + BE_energy + wilip[ip-1]+ params->ap_penalty + 2*params->bp_penalty;
         m3 = WIP_Bbp[l-1] + BE_energy + WIP_Bbp[ip-1] + ap_penalty + 2*bp_penalty;
+		if(i==18 && j==43) printf("i is %d and j is %d and WIPBbpl is %d and WIPBbpip is %d and ip is %d\n",i,j,WIP_Bbp[l-1],WIP_Bbp[ip-1],ip);
         val = std::min(val,m3);
     }
 
@@ -1770,6 +1771,7 @@ energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, st
         m5 = ap_penalty + 2*bp_penalty + (params->cp_penalty * (l-i+1)) + BE_energy + WIP_Bbp[ip-1];
         val = std::min(val,m5);
     }
+	if(i==18 && j==43) printf("i is %d and j is %d and m1 is %d and m2 is %d and m3 is %d and m4 is %d and m5 is %d and BE_energy is %d\n",i,j,m1,m2,m3,m4,m5,BE_energy);
 
     return(val);
         
@@ -1908,6 +1910,7 @@ energy_t compute_WMB(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std::
 					size_t k = it->first;
 					if(k == bp_j){
 						BE_energy = it->second;
+						// if(i==5 && j==64) std::cout << k << " " << bp_j << " " << BE_energy << std::endl;
 						break;
 					}
 				}
@@ -1916,16 +1919,23 @@ energy_t compute_WMB(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std::
 				energy_t WMBP_energy = WMBP[l];
 				energy_t WI_energy = (Bp_lj-1-(l+1)+1)> 4 ? WI_Bp[l] : params->PUP_penalty*(Bp_lj-1-(l+1)+1);
 				energy_t sum = BE_energy + WMBP_energy + WI_energy;
+				// if(i==5 && j==64) printf("i is %d and j is %d and l is %d and bplj is %d and WMBP is %d and BE is %d and WI is %d\n",i,j,l,Bp_lj,WMBP_energy,BE_energy,WI_energy);
 				if (m1 > sum){
 					m1 = sum;
 				}
 
 			}
 		}
-		m1 = params->PB_penalty + m1;
+		// if(i==5 && j==64) printf("and m1 is now %d from %d\n",m1+PB_penalty,m1);
+
+		m1 = PB_penalty + m1;
+		
 	}
 	// check the WMBP_ij value
 	m2 =  WMBP[j];
+
+	// if(i==5 && j==64) printf("i is %d and j is %d and m1 is %d and WMBP is %d\n",i,j,m1,m2);
+
 
 	// get the min for WMB
 
@@ -1945,6 +1955,7 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 	if (sparse_tree.tree[i].parent->index < sparse_tree.tree[j].parent->index && sparse_tree.tree[j].parent->index > 0 && b_ij>= 0 && bp_ij >= 0 && Bp_ij < 0){
 		energy_t WI_i_plus_b_minus = dwi1[b_ij-1];
 		energy_t WI_bp_plus_j_minus = (j-1-(bp_ij+1))> 4 ? WI_Bbp[j-1] : params->PUP_penalty*(j-1-(bp_ij+1)+1);
+		if(i==11 && j==56) printf("i is %d and j is %d and b is %d and bp is %d and WIbBp is %d\n",i,j,b_ij,bp_ij,WI_Bbp[j-1]);
 		m2 = WI_i_plus_b_minus + WI_bp_plus_j_minus;
 	}
 	
@@ -2022,9 +2033,9 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 			register_trace_arrow(taVP,i,j,best_k,best_l,vp_iloop);
 		}
 	}
-	if(i==11 && j==56) printf("i is %d and j is %d and vp_h is %d and vp_int is %d and vp_split is %d and best_k is %d and best_l is %d\n",i,j,vp_h,vp_iloop,vp_split,best_k,best_l);
-	if(i==12 && j==54) printf("i is %d and j is %d and vp_h is %d and vp_int is %d and vp_split is %d and best_k is %d and best_l is %d\n",i,j,vp_h,vp_iloop,vp_split,best_k,best_l);
-	if(i==13 && j==53) printf("i is %d and j is %d and vp_h is %d and vp_int is %d and vp_split is %d and best_k is %d and best_l is %d\n",i,j,vp_h,vp_iloop,vp_split,best_k,best_l);
+	// if(i==11 && j==56) printf("i is %d and j is %d and vp_h is %d and vp_int is %d and vp_split is %d and best_k is %d and best_l is %d\n",i,j,vp_h,vp_iloop,vp_split,best_k,best_l);
+	// if(i==12 && j==54) printf("i is %d and j is %d and vp_h is %d and vp_int is %d and vp_split is %d and best_k is %d and best_l is %d\n",i,j,vp_h,vp_iloop,vp_split,best_k,best_l);
+	// if(i==13 && j==53) printf("i is %d and j is %d and vp_h is %d and vp_int is %d and vp_split is %d and best_k is %d and best_l is %d\n",i,j,vp_h,vp_iloop,vp_split,best_k,best_l);
 
 	return vp;
 
@@ -2065,30 +2076,35 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 				WI[j] = (j-i+1)*params->PUP_penalty;
 			}
 		}
-		bool bp_bool = false;
-		bool B_bool = false;
-		bool Bpb_bool = false;
-		if(pseudoknot){
-			if(sparse_tree.tree[i-1].pair>0 && i+4 < n){
-				if(sparse_tree.tree[i+4].parent->index == i-1) bp_bool = true;
-				if(sparse_tree.tree[i+4].parent->index == sparse_tree.tree[i-1].parent->index) B_bool = true;
-			}
-		}
 
 		for ( cand_pos_t j=i+TURN+1; j<=n; j++ ) {
+			bool bp_bool = false;
+			bool B_bool = false;
+			bool Bpb_bool = false;
 
-			if(pseudoknot){
-				if(sparse_tree.tree[j].pair>0){
-					bp_bool = false;
-					B_bool = false;
-				}
-			}
+			// if(pseudoknot){
+			// 	if(sparse_tree.tree[j].pair>0){
+			// 		bp_bool = false;
+			// 		B_bool = false;
+			// 	}
+			// }
 			if(pseudoknot){
 				if(sparse_tree.tree[j].index == sparse_tree.tree[j].parent->pair-1 && sparse_tree.tree[i].parent->index == sparse_tree.tree[j].parent->index) Bpb_bool = true;
 				else if(j+1 < n && sparse_tree.tree[j+1].pair > sparse_tree.tree[j+1].index && sparse_tree.tree[i].parent->index == sparse_tree.tree[j].parent->index) Bpb_bool = true;
 
 				else Bpb_bool = false;
 			}
+			// if(pseudoknot){
+			// 	if(sparse_tree.tree[i-1].pair>0 && i+4 < n){
+			// 		// if(sparse_tree.tree[i+4].parent->index == i-1) bp_bool = true;
+			// 		if(sparse_tree.tree[i].parent->index == i-1) 
+			// 			if((sparse_tree.tree[i].parent->index == sparse_tree.tree[j].parent->index) && (sparse_tree.tree[i].pair == j || (sparse_tree.tree[i].pair < 0 && sparse_tree.tree[j].pair < 0))) bp_bool = true;
+			// 		// if(sparse_tree.tree[i+4].parent->index == sparse_tree.tree[i-1].parent->index) B_bool = true;
+			// 		if(sparse_tree.tree[i-1].pair < i-1)
+			// 			if((sparse_tree.tree[i].parent->index == sparse_tree.tree[j].parent->index) && (sparse_tree.tree[i].pair == j || (sparse_tree.tree[i].pair < 0 && sparse_tree.tree[j].pair < 0))) B_bool = true;
+
+			// 	}
+			// }
 
 			bool evaluate = sparse_tree.weakly_closed(i,j);
 			// ------------------------------
@@ -2101,7 +2117,6 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			energy_t wip_split = INF;
 			for ( auto it=CL[j].begin();CL[j].end() != it;++it ) {
 				cand_pos_t k=it->first;
-				if(i==5 &j==79) printf("i is %d and j is %d and k is %d and W[k-1] is %d and v is %d\n",i,j,k,W[k-1],it->fourth >> 2);
 
 				const energy_t v_kj = it->third >> 2;
 				const energy_t v_kjw = it ->fourth >> 2;
@@ -2132,7 +2147,6 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 
 				cand_pos_t k = it->first;
 				bool can_pair = sparse_tree.up[k-1] >= (k-i);
-				if(i==5 &j==79) printf("i is %d and j is %d and k is %d and W[k-1] is %d wmb is %d\n",i,j,k,W[k-1],it->second);
 
 				// For W
 				energy_t wmb_kj = it->second + params->PS_penalty;
@@ -2157,8 +2171,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			if(sparse_tree.tree[j].pair<0) wi_split = std::min(wi_split,WI[j-1] + params->PUP_penalty);
 			if(sparse_tree.tree[j].pair<0) wip_split = std::min(wip_split,WIP[j-1] + params->cp_penalty);
 
-			// if(i==5 && j ==38) printf("i is %d and j is %d and wm2_split is %d\n",i,j,wm2_split);
-			
+			// if(i==15 && j ==54) printf("i is %d and j is %d and wi_split is %d\n",i,j,wi_split);
 
 			
 			energy_t w  = w_split; // entry of W w/o contribution of V
@@ -2201,11 +2214,11 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					for ( cand_pos_t k=i+1; k<=max_k; k++) {
 						cand_pos_t k_mod=k%(MAXLOOP+1);
 						
-						energy_t cank = (sparse_tree.up[k-1]>=(k-i-1)-1);
+						energy_t cank = ((sparse_tree.up[k-1]>=(k-i-1))-1);
 						cand_pos_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
 						for (cand_pos_t l=j-1; l>=min_l; --l) {
 							assert(k-i+j-l-2<=MAXLOOP);
-							energy_t canl = ((sparse_tree.up[j-1]>=(j-l-1)-1) | cank);
+							energy_t canl = (((sparse_tree.up[j-1]>=(j-l-1))-1) | cank);
 							energy_t v_iloop_kl = INF & canl;
 							
 							v_iloop_kl = v_iloop_kl + V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params));
@@ -2249,6 +2262,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,sparse_tree.tree);
 			// Checking the dangle positions for W
 			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,sparse_tree.tree);
+
 			cand_pos_t k = i;
             cand_pos_t l = j;
 			if(params->model_details.dangles == 1){
@@ -2359,19 +2373,29 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					
 					wi_wmb = WMB[j] + params->PSM_penalty + params->PPS_penalty;
 					wip_wmb = WMB[j] + params->PSM_penalty + params->bp_penalty;
-					WI[j] = std::min({wi_split,wi_v,wi_wmb});
-					WIP[j] = std::min({wip_split,wip_v,wip_wmb});
-					if(B_bool || bp_bool){
-						// std::cout << j << std::endl;
-						WI_Bbp[j] = WI[j];
-						WIP_Bbp[j] = WIP[j];
-						
+
+
+					WI[j] = std::min(wi_v,wi_wmb);
+					WIP[j] = std::min(wip_v,wip_wmb);
+					if(sparse_tree.tree[i-1].pair>0 && j < n){
+						// if(sparse_tree.tree[i+4].parent->index == i-1) bp_bool = true;
+						if(sparse_tree.tree[i].parent->index == i-1 || sparse_tree.tree[i-1].pair < i-1) 
+							if((sparse_tree.tree[i].parent->index == sparse_tree.tree[j].parent->index) && ((sparse_tree.tree[i].pair == j) || (WIP[j] == WIP[j-1] + cp_penalty))){
+								std::cout << "bool at:     " << i << " and " << j << std::endl;
+								WI_Bbp[j] = WI[j];
+								WIP_Bbp[j] = WIP[j];
+							}
+
 					}
+					if(i==19 && j==33) printf("i is %d and j is %d and WIPj is %d and WIPj-1 is %d\n",i,j,WIP[j],WIP[j-1]);
 					if(Bpb_bool){
 						WI_Bp[i] = WI[j];
 						
 					}
+					WI[j] = std::min(wi_split,WI[j]);
+					WIP[j] = std::min(wip_split,WIP[j]);
 				}
+				if(i==15 && j ==54) printf("i is %d and j is %d and wi_split is %d\n",i,j,WI_Bbp[j]);
 
 				// ------------------------------------------------End of Wi/Wip--------------------------------------------------
 				
@@ -2422,6 +2446,15 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					
 				// // ------------------------------------------------End of BE---------------------------------------------------------
 			}
+			if(i==14 && j==43) printf("i is %d and j is %d and ip is %d and jp is %d and BE is %d\n",i,sparse_tree.tree[i].pair,sparse_tree.tree[j].pair,j,be);
+			if(i==15 && j==43) printf("i is %d and j is %d and ip is %d and jp is %d and BE is %d\n",i,sparse_tree.tree[i].pair,sparse_tree.tree[j].pair,j,be);
+			if(i==16 && j==43) printf("i is %d and j is %d and ip is %d and jp is %d and BE is %d\n",i,sparse_tree.tree[i].pair,sparse_tree.tree[j].pair,j,be);
+			if(i==17 && j==43) printf("i is %d and j is %d and ip is %d and jp is %d and BE is %d\n",i,sparse_tree.tree[i].pair,sparse_tree.tree[j].pair,j,be);
+			if(i==34 && j==43) printf("i is %d and j is %d and ip is %d and jp is %d and BE is %d\n",i,sparse_tree.tree[i].pair,sparse_tree.tree[j].pair,j,be);
+			if(i==18 && j==43) printf("i is %d and j is %d and ip is %d and jp is %d and BE is %d\n",i,sparse_tree.tree[i].pair,sparse_tree.tree[j].pair,j,be);
+
+
+			if(i==19 && j==33) printf("i is %d and j is %d and WIP is %d\n",i,j,WIP[j]);
 			// if(i==49 && j==68) printf("i is %d and j is %d and v is %d\n",i,j,wm_v);
 			// if(i==50 && j==67) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
 			// if(i==22 && j==45) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
@@ -2431,37 +2464,36 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			// if(i==7 && j==57) printf("i is %d and j is %d and wmbp is %d\n",i,j,WMBP[j]);
 
 
-			if(i==14 && j==64) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==23 && j==28) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==22 && j==29) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==21 && j==30) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==20 && j==31) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==19 && j==32) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==18 && j==51) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==17 && j==52) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==16 && j==53) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==15 && j==54) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==38 && j==43) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==37 && j==44) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==36 && j==45) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==35 && j==46) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
-			if(i==34 && j==47) printf("i is %d and j is %d and v is %d\n",i,j,V(i_mod,j));
+			// if(i==23 && j==28) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==22 && j==29) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==21 && j==30) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==20 && j==31) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==19 && j==32) printf("i is %d and j is %d and v is %d\n",i,j,v);
 			
-			if(i==11 && j==56) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
-			if(i==10 && j==57) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
-			if(i==8 && j==59) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
-			if(i==7 && j==60) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
-			if(i==6 && j==61) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
-			if(i==5 && j==62) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
+			// if(i==18 && j==51) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==17 && j==52) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==16 && j==53) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==15 && j==54) printf("i is %d and j is %d and v is %d\n",i,j,v);
 
-			if(i==12 && j==54) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			// if(i==34 && j==47) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==35 && j==46) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==36 && j==45) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==37 && j==44) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==38 && j==43) printf("i is %d and j is %d and v is %d\n",i,j,v);
 
-			if(i==11 && j==56) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
-			if(i==10 && j==57) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
-			if(i==8 && j==59) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
-			if(i==7 && j==60) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
-			if(i==6 && j==61) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
-			if(i==5 && j==62) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			// if(i==14 && j==64) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			
+			// if(i==11 && j==56) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			// if(i==10 && j==57) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+
+			// if(i==8 && j==59) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			// if(i==7 && j==60) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			// if(i==6 && j==61) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			// if(i==5 && j==62) printf("i is %d and j is %d and vp is %d\n",i,j,VP(i_mod,j));
+			// if(i==5 && j==64) printf("i is %d and j is %d and wmb is %d\n",i,j,WMB[j]);
+
+
+
 
 			
 			
@@ -2494,13 +2526,14 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 				w =std::min(w,w_wmb);
 				wm = std::min(wm,wm_wmb);
 			// }
+			if(i==5 && j==64) printf("i is %d and j is %d and wwmb is %d\n",i,j,w_wmb);
 			// w_wmb = (w_wmb << 2) | dw;
 			// wm_wmb = (wm_wmb << 2) | dw;
 			// if(i==5 && j==77)printf("i is %d and j is %d and w_wmb is %d and w_split is %d\n",i,j,w_wmb,w_split);
 			// if(i==79 && j==96)printf("i is %d and j is %d and w_v is %d and wm_v is %d and wi_v is %d and wip_v is %d and w_split is %d and wm_split is %d and wi_split is %d and wip_split is %d\n",i,j,w_v,wm_v,wi_v,wip_v,w_split,wm_split,wi_split,wip_split);
 			// if(i==79 && j==96) printf("v is %d\n",V(i_mod,j));
 			// if(i==79 && j==96) printf("wmb is %d\n",WMB[j]);
-			if(V(i_mod,j) != INF){
+			// if(V(i_mod,j) != INF){
 				if ( w_v < w_split || wm_v < wm_split || wi_v < wi_split || wip_v < wip_split || paired) {
 					cand_pos_t k_mod = k%(MAXLOOP+1);
 					// Encode the dangles into the energies
@@ -2510,8 +2543,8 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					// always keep arrows starting from candidates
 					inc_source_ref_count(ta,i,j);
 				}	
-			}
-			if(WMB[j] != INF){
+			// }
+			// if(WMB[j] != INF){
 				if ( w_wmb < w_split || wm_wmb < wm_split || wi_wmb < wi_split || wip_wmb < wip_split) {
 			
 					register_candidate(CLWMB, i, j, WMB[j]);
@@ -2519,8 +2552,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					// always keep arrows starting from candidates
 					inc_source_ref_count(ta,i,j); // should i increment this?
 				}	
-			}	
-			if(i==1 && j==96) printf("i is %d and j is %d and wmb_split is %d\n",i,j,w_wmb);
+			// }	
 
 			W[j]       = w;
 			WM[j]      = wm;
@@ -2682,15 +2714,16 @@ main(int argc,char **argv) {
 			count--;
 		}
 	}
+	
 	energy_t mfe = fold(sparsemfefold.seq_, tree,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.CLWMB_,sparsemfefold.CLVP_,sparsemfefold.CLBE_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.taVP_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.VP_, sparsemfefold.WVe_, sparsemfefold.WV_, sparsemfefold.dwvp_, sparsemfefold.WMB_,sparsemfefold.dwmbi_,sparsemfefold.WMBP_,sparsemfefold.WI_,sparsemfefold.dwi1_,sparsemfefold.WIP_,sparsemfefold.dwip1_,sparsemfefold.WI_Bbp,sparsemfefold.WIP_Bbp,sparsemfefold.WI_Bp,sparsemfefold.n_,sparsemfefold.garbage_collect_);		
 	std::cout << mfe << std::endl;
-	std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.CLWMB_,sparsemfefold.CLBE_,sparsemfefold.CLVP_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.taVP_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.WI_Bbp,sparsemfefold.WIP_Bbp,sparsemfefold.WI_Bp,sparsemfefold.n_,tree, mark_candidates);
+	// std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.CLWMB_,sparsemfefold.CLBE_,sparsemfefold.CLVP_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.taVP_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.WI_Bbp,sparsemfefold.WIP_Bbp,sparsemfefold.WI_Bp,sparsemfefold.n_,tree, mark_candidates);
 	
 	std::ostringstream smfe;
 	smfe << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
 	std::cout << seq << std::endl;
 
-	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
+	// std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
 
 	// float factor=1024;
 	
