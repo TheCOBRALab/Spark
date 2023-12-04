@@ -79,7 +79,7 @@ class sparse_tree{
         {
             for (auto x : euler) depthArr.push_back(level[x]);
         }
-
+            
         /**
          *  Query finds the node which is at the maximum height within a section of the depth array. 
          * As the parent of the given l and r must be between the two, we can search between.
@@ -244,6 +244,7 @@ class sparse_tree{
             if ((tree[l].parent)->pair > j) return -1;
             else{
                 int lca = LCA(l,j);
+                if(j == lca) return j;
                 for(int x:tree[lca].children){
                     if(x<j && tree[x].pair > l) return tree[x].pair;
                 }
@@ -256,6 +257,8 @@ class sparse_tree{
             if ((tree[l].parent)->index < i) return -1;
             else{
                 int lca = LCA(i,l);
+                if(i==lca) return i;
+
                 for(int x:tree[lca].children){
                     if(x<l && tree[x].pair > l) return x;
                 }

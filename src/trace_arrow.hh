@@ -19,7 +19,7 @@ class TraceArrow {
     unsigned char k_; //!< offset to target row of arrow
     unsigned char l_; //!< offset to target column of arrow
     energy_t energy_; //!<target energy
-    uint count_; //!< counts how many trace arrows point to the source
+    int count_; //!< counts how many trace arrows point to the source
 public:
     /**
      * @brief construct by target coordinates
@@ -28,7 +28,7 @@ public:
      * @param k target row
      * @param l target column
      */
-    TraceArrow(cand_pos_tu i,cand_pos_tu j,cand_pos_tu k,cand_pos_tu l,energy_t e)
+    TraceArrow(cand_pos_t i,cand_pos_t j,cand_pos_t k,cand_pos_t l,energy_t e)
 	: k_(k-i),l_(j-l),energy_(e),count_(0)
     {}
 
@@ -37,10 +37,10 @@ public:
      */
     TraceArrow() {}
 
-    cand_pos_tu k(cand_pos_tu i,cand_pos_tu j) const {return k_+i;}
-    cand_pos_tu l(cand_pos_tu i,cand_pos_tu j) const {return j-l_;}
+    cand_pos_t k(cand_pos_t i,cand_pos_t j) const {return k_+i;}
+    cand_pos_t l(cand_pos_t i,cand_pos_t j) const {return j-l_;}
     energy_t target_energy() const {return energy_;}
-    cand_pos_tu source_ref_count() const {return count_;}
+    cand_pos_t source_ref_count() const {return count_;}
 
     void inc_src() {count_++;}
     void dec_src() {count_--;}
@@ -58,22 +58,22 @@ public:
 class TraceArrows {
 
 public:
-    typedef SimpleMap< cand_pos_tu, TraceArrow >       trace_arrow_row_map_t;
+    typedef SimpleMap< cand_pos_t, TraceArrow >       trace_arrow_row_map_t;
     typedef std::vector< trace_arrow_row_map_t >  trace_arrow_map_t;
     trace_arrow_map_t trace_arrow_;
-    cand_pos_tu n_; //!< sequence length
+    cand_pos_t n_; //!< sequence length
 
-    cand_pos_tu ta_count_; // count all generated tas
-    cand_pos_tu ta_avoid_; // count all avoided tas (since they point to candidates)
-    cand_pos_tu ta_erase_; // count all erased tas (in gc)
-    cand_pos_tu ta_max_; // keep track of maximum number of tas, existing simultaneously
+    cand_pos_t ta_count_; // count all generated tas
+    cand_pos_t ta_avoid_; // count all avoided tas (since they point to candidates)
+    cand_pos_t ta_erase_; // count all erased tas (in gc)
+    cand_pos_t ta_max_; // keep track of maximum number of tas, existing simultaneously
 public:
 
     /**
      * @brief Construct for sequence of specific length
      * @param n sequence length
      */
-    TraceArrows(cand_pos_tu n);
+    TraceArrows(cand_pos_t n);
 
     /**
      * @brief Clear the TA structure to be used again
@@ -97,7 +97,7 @@ public:
 * @param i source row index
 * @param j source column index
 */
-TraceArrow & trace_arrow_from(TraceArrows &t, cand_pos_tu i, cand_pos_tu j);
+TraceArrow & trace_arrow_from(TraceArrows &t, cand_pos_t i, cand_pos_t j);
 
 /**
 * Check existence of trace arrow by source
@@ -106,7 +106,7 @@ TraceArrow & trace_arrow_from(TraceArrows &t, cand_pos_tu i, cand_pos_tu j);
 * @param j source column index
 * @returns whether trace arrow exists
 */
-bool exists_trace_arrow_from(TraceArrows &t,cand_pos_tu i, cand_pos_tu j);
+bool exists_trace_arrow_from(TraceArrows &t,cand_pos_t i, cand_pos_t j);
 
 
 
@@ -123,7 +123,7 @@ void avoid_trace_arrow(TraceArrows &t);
  *
  * If no trace arrow from source exists, do nothing
  */
-void inc_source_ref_count(TraceArrows &t, cand_pos_tu i, cand_pos_tu j);
+void inc_source_ref_count(TraceArrows &t, cand_pos_t i, cand_pos_t j);
 
 
 /**
@@ -136,10 +136,10 @@ void inc_source_ref_count(TraceArrows &t, cand_pos_tu i, cand_pos_tu j);
  * @param k target row
  * @param l target column
  */
-void register_trace_arrow(TraceArrows &t,cand_pos_tu i, cand_pos_tu j,cand_pos_tu k, cand_pos_tu l,energy_t e);
+void register_trace_arrow(TraceArrows &t,cand_pos_t i, cand_pos_t j,cand_pos_t k, cand_pos_t l,energy_t e);
 
 
-void resize(TraceArrows &t,cand_pos_tu n);
+void resize(TraceArrows &t,cand_pos_t n);
 
 
 /**
@@ -148,13 +148,13 @@ void resize(TraceArrows &t,cand_pos_tu n);
      * if count = 0 then remove trace arrow; recursively decrement
      * targets and remove if count drops to 0
      */
-void gc_trace_arrow(TraceArrows &t, cand_pos_tu i, cand_pos_tu j);
+void gc_trace_arrow(TraceArrows &t, cand_pos_t i, cand_pos_t j);
 
-void gc_trace_arrow(TraceArrows &t, TraceArrows &td, cand_pos_tu i, cand_pos_tu j);
+void gc_trace_arrow(TraceArrows &t, TraceArrows &td, cand_pos_t i, cand_pos_t j);
 
-void gc_row(TraceArrows &t, cand_pos_tu i );
+void gc_row(TraceArrows &t, cand_pos_t i );
 
-void gc_row(TraceArrows &t, TraceArrows &td, cand_pos_tu i );
+void gc_row(TraceArrows &t, TraceArrows &td, cand_pos_t i );
 
 
 /**
@@ -167,17 +167,17 @@ void compactify(TraceArrows &t);
 /** @brief Number of trace arrows
 * @return number
 */
-cand_pos_tu numberT(TraceArrows &t);
+cand_pos_t numberT(TraceArrows &t);
 
-cand_pos_tu sizeT(TraceArrows &t);
-cand_pos_tu erasedT(TraceArrows &t);
-cand_pos_tu avoidedT(TraceArrows &t);
-cand_pos_tu maxT(TraceArrows &t);
+cand_pos_t sizeT(TraceArrows &t);
+cand_pos_t erasedT(TraceArrows &t);
+cand_pos_t avoidedT(TraceArrows &t);
+cand_pos_t maxT(TraceArrows &t);
 
 /** @brief Capacity of trace arrows vectors
 * @return capacity
 */
-cand_pos_tu capacityT(TraceArrows &t);
+cand_pos_t capacityT(TraceArrows &t);
 
 
 

@@ -15,7 +15,7 @@ set(spark_SOURCE
 )
 
 set(test_SOURCE
-test/Case3.cpp 
+test/Case8.cpp 
 test/Test.cpp
 )
 
