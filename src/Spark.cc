@@ -2228,6 +2228,7 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 */
 energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<energy_t> &V, const SparseMFEFold::Cand_comp& cand_comp, std::vector<cand_list_td1> &CL, std::vector<cand_list_t> &CLWMB,std::vector<cand_list_td1> &CLVP, std::vector<cand_list_t> &CLBE, short* S, short* S1, paramT* params, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, std::vector<energy_t> &dmli1, std::vector<energy_t> &dmli2, LocARNA::Matrix<energy_t> &VP, std::vector<energy_t> &WVe, std::vector<energy_t> &WV, std::vector<energy_t> &dwvp, std::vector<energy_t> &WMB, std::vector<energy_t> &dwmbi,std::vector<energy_t> &WMBP,std::vector<energy_t> &WI,std::vector<energy_t> &dwi1,std::vector<energy_t> &WIP, std::vector<energy_t> &dwip1, std::vector<energy_t> &WI_Bbp, std::vector<energy_t> &WIP_Bbp, std::vector< energy_t >&WIP_Bp, std::vector<energy_t> &WI_Bp , const cand_pos_t n, const bool garbage_collect) {
 	Dangle d = 3;
+	int BE_avoided = 0;
     if(params->model_details.dangles == 0 || params->model_details.dangles == 1) d = 0;
     
     for (cand_pos_t i=n; i>0; --i) {
@@ -2579,17 +2580,29 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 				cand_pos_t jp = sparse_tree.tree[j].pair; // j's pair jp should be left side so jp = (
 				
 				// base case: i.j and ip.jp must be in G
+				
 				if (jp > i && j > jp && ip > j && ip > i){ // Don't need to check if they are pairs separately because it is checked by virtue of these checks
+					if(sparse_tree.tree[jp+1].pair == j-1){
+						BE_avoided++;
+					}
+					else{
+						energy_t BE = compute_BE(i,j,ip,jp,CLBE,sparse_tree,S,S1,params,dwip1,WIP_Bp);
+						be = BE;
+						register_candidate(CLBE,i,j,BE);
+					}
 					
-					energy_t BE = compute_BE(i,j,ip,jp,CLBE,sparse_tree,S,S1,params,dwip1,WIP_Bp);
-					be = BE;
-					register_candidate(CLBE,i,j,BE);
 				}
 				else if(i == jp && ip == j){
-					energy_t BE = 0;
-					be = BE;
-					register_candidate(CLBE,i,j,BE);
-				} 
+					if(sparse_tree.tree[jp+1].pair == j-1){
+						BE_avoided++;
+					}
+					else{
+						energy_t BE = 0;
+						be = BE;
+						register_candidate(CLBE,i,j,BE);
+					}
+				}
+				
 					
 				// // ------------------------------------------------End of BE---------------------------------------------------------
 			}
@@ -2675,6 +2688,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 		compactify(ta);
 		compactify(taVP);
 	}
+	std::cout << "BE avoided: " << BE_avoided << std::endl;
 	return W[n];
 }
 
