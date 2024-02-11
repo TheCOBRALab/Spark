@@ -16,9 +16,9 @@ int dangle_model;
 
 static char *package_name = 0;
 
-const char *args_info_purpose = "Time- and space-efficient sparsified minimum free energy folding of RNAs";
+const char *args_info_purpose = "Time- and space-efficient sparsified minimum free energy folding of possibly-pseudoknotted RNAs";
 
-const char *args_info_usage = "Usage: sparsemfefold"  "[options] [sequence]";
+const char *args_info_usage = "Usage: Spark"  "[options] [sequence]";
 
 const char *args_info_versiontext = "";
 
@@ -31,7 +31,8 @@ const char *args_info_help[] = {
   "  -m, --mark-candidates  Represent candidate base pairs by square brackets",
   "  -r, --input-structure  Give a restricted structure as an input structure",
   "  -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')",
-  "  -p, --pseudoknot       Turn on Psuedoknot prediction",
+  "  -p, --pseudoknot-free       Turn off Psuedoknot prediction",
+  "  -k  --pk-only          Use the pk_only version of Spark"
   "  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.\n",
   "      --noGC             Turn off garbage collection and related overhead",
   "      --noGU             Turn off G-U and U-G base pairing",
@@ -57,17 +58,18 @@ static void init_args_info(struct args_info *args_info)
   args_info->mark_candidates_help = args_info_help[3] ;
   args_info->input_structure_help = args_info_help[4] ;
   args_info->dangles_help = args_info_help[5];
-  args_info->pseudoknot_help = args_info_help[6] ;
-  args_info->paramFile_help = args_info_help[7] ;
-  args_info->noGC_help = args_info_help[8] ;
-  args_info->noGU_help = args_info_help[9] ;
+  args_info->pseudoknot_free_help = args_info_help[6] ;
+  args_info->pk_only_help = args_info_help[7] ;
+  args_info->paramFile_help = args_info_help[8] ;
+  args_info->noGC_help = args_info_help[9] ;
+  args_info->noGU_help = args_info_help[10] ;
 
   
 }
 void
 cmdline_parser_print_version (void)
 {
-  printf (" %s\n",(strlen(package_name) ? package_name : "sparsemfefold"));
+  printf (" %s\n",(strlen(package_name) ? package_name : "Spark"));
 
   if (strlen(args_info_versiontext) > 0)
     printf("\n%s\n", args_info_versiontext);
@@ -109,7 +111,8 @@ static void clear_given (struct args_info *args_info)
   args_info->mark_candidates_given = 0 ;
   args_info->input_structure_given = 0 ;
   args_info->dangles_given = 0 ;
-  args_info->pseudoknot_given = 0 ;
+  args_info->pseudoknot_free_given = 0 ;
+  args_info->pk_only_given = 0 ;
   args_info->paramFile_given = 0 ;
   args_info->noGC_given = 0 ;
   args_info->noGU_given = 0 ;
@@ -304,14 +307,15 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "mark-candidates",	0, NULL, 'm' },
         { "input-structure",	required_argument, NULL, 'r' },
         { "dangles", required_argument, NULL, 'd'},
-        { "pseudoknot",	0, NULL, 'p' },
+        { "pseudoknot-free",	0, NULL, 'p' },
+        { "pk-only",	0, NULL, 'k' },
         { "paramFile",	required_argument, NULL, 'P' },
         { "noGC",	0, NULL, 0 },
         { "noGU",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVvmr:P:d:p", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVvmr:P:d:pk", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -375,8 +379,17 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
         
           if (update_arg( 0 , 
-               0 , &(args_info->pseudoknot_given),
-              &(local_args_info.pseudoknot_given), optarg, 0, 0, ARG_NO,0, 0,"pseudoknot", 'p',additional_error))
+               0 , &(args_info->pseudoknot_free_given),
+              &(local_args_info.pseudoknot_free_given), optarg, 0, 0, ARG_NO,0, 0,"pseudoknot-free", 'p',additional_error))
+            goto failure;
+        
+          break;
+          case 'k':	/* Predict a pseudoknot.  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->pk_only_given),
+              &(local_args_info.pk_only_given), optarg, 0, 0, ARG_NO,0, 0,"pk-only", 'k',additional_error))
             goto failure;
         
           break;

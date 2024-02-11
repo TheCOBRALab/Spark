@@ -29,6 +29,8 @@ extern "C" {
 }
 static bool pseudoknot = false;
 
+static bool pk_only = false;
+
 struct quatret
 {
     cand_pos_t first; 
@@ -2243,11 +2245,6 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			if(sparse_tree.tree[j].pair<0) wi_split = std::min(wi_split,WI[j-1] + params->PUP_penalty);
 			if(sparse_tree.tree[j].pair<0) wip_split = std::min(wip_split,WIP[j-1] + params->cp_penalty);
 
-
-
-
-
-
 			
 			energy_t w  = w_split; // entry of W w/o contribution of V
 			energy_t wm = wm_split; // entry of WM w/o contribution of V
@@ -2260,10 +2257,12 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 
 			const bool unpaired = (sparse_tree.tree[i].pair<-1 && sparse_tree.tree[j].pair<-1);
 			const bool paired = (sparse_tree.tree[i].pair == j && sparse_tree.tree[j].pair == i);
+			const bool pkonly = (!pk_only || paired);
 			energy_t v = INF;
 			// ----------------------------------------
 			// cases with base pair (i,j)
-			if(ptype_closing>0 && !restricted && evaluate) { // if i,j form a canonical base pair
+			// if(ptype_closing>0 && !restricted && evaluate) { // if i,j form a canonical base pair
+			if(ptype_closing>0 && !restricted && evaluate && pkonly) { 
 				bool canH = (paired || unpaired);
 				if(sparse_tree.up[j-1]<(j-i-1)) canH=false;
 				
@@ -2686,7 +2685,8 @@ int main(int argc,char **argv) {
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
 
 	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangle_model;
-	if(args_info.pseudoknot_given) pseudoknot = ~pseudoknot; 
+	pseudoknot = ~args_info.pseudoknot_free_given;
+	pk_only = args_info.pk_only_given;  
 	
 	cmdline_parser_free(&args_info);
 
@@ -2718,17 +2718,8 @@ int main(int argc,char **argv) {
 
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
 	// std::cout << " ("<<smfe.str()<<")"<<std::endl;
-
-
-	// float factor=1024;
 	
-	// std::cout >> sparsemfefold.CLBE_.size() << std::endl;
-	// const std::string unit=" kB";
-	
-	
-	
-	if (verbose) {
-		
+	if (verbose) {	
 
 	std::cout <<std::endl;
 

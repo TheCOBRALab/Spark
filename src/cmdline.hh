@@ -21,7 +21,8 @@ struct args_info
   const char *mark_candidates_help; /**< @brief Represent candidate base pairs by square brackets help description.  */
   const char *input_structure_help; /**< @brief Give restricted structure as input help description.  */
   const char *dangles_help; /**< @brief Give the number of dangles being used (1 or 2) */
-  const char *pseudoknot_help; /**< @brief Turn on pseudoknot prediction */
+  const char *pseudoknot_free_help; /**< @brief Turn off pseudoknot prediction */
+  const char *pk_only_help; /**< @brief Turn on pk_only prediction */
   const char *paramFile_help; /**< @brief Use a separate parameter list */
   const char *noGC_help; /**< @brief Turn off garbage collection and related overhead help description.  */
   const char *noGU_help; /**< @brief Turn off garbage collection and related overhead help description.  */
@@ -33,7 +34,8 @@ struct args_info
   unsigned int mark_candidates_given ;	/**< @brief Whether mark-candidates was given.  */
   unsigned int input_structure_given ;	/**< @brief Whether restricted structure was given.  */
   unsigned int dangles_given ;	/**< @brief Whether restricted structure was given.  */
-  unsigned int pseudoknot_given ;	/**< @brief Whether pseudoknot was given.  */
+  unsigned int pseudoknot_free_given ;	/**< @brief Whether pseudoknot-free was given.  */
+  unsigned int pk_only_given ;	/**< @brief Whether pseudoknot was given.  */
   unsigned int paramFile_given ; /** <@brief whether a parameter file was given */
   unsigned int noGC_given ;	/**< @brief Whether noGC was given.  */
   unsigned int noGU_given ;	/**< @brief Whether noGC was given.  */
