@@ -18,7 +18,12 @@ std::string remove_structure_intersection(std::string restricted, std::string st
 	}
 	return output;
 }
-
+/**
+ * @brief returns a vector of pairs which represent the start and end indices for each disjoint substructure in the structure
+ * 
+ * @param CL_ Candidate list
+ * @return total number of candidates
+ */
 std::string find_disjoint_substructure(std::string structure){
 	cand_pos_t length = structure.length();
 	string restricted= std::string (n,'.')
