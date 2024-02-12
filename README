@@ -1,8 +1,8 @@
-# SparseRNAFolD
+# Spark
 
 #### Description:
-Software implementation of SparseRNAFolD.      
-SparseRNAFolD is an algorithm for predicting the pseudoknotted secondary structure of RNA using relaxed Hierarchical Folding.
+Software implementation of Spark.      
+Spark is a time- and space-efficient sparsified minimum free energy folding of possibly-pseudoknotted RNAs
 
 #### Supported OS: 
 Linux, macOS
@@ -32,15 +32,13 @@ If you need to specify a specific compiler, such as g++, you can instead run som
 cmake -H. -Bbuild -DCMAKE_CXX_COMPILER=g++
 cmake --build build
 ```   
-This can be useful if you are getting errors about your compiler not having C++11 features.
-
-After installing you can move the executables wherever you wish, but you should not delete or move the simfold folder, or you must recompile the executables. If you move the folders and wish to recompile, you should first delete the created "build" folder before recompiling.
+This can be useful if you are getting errors about your compiler not having C++17 features.
 
 Help
 ========================================
 
 ```
-Usage: SparseRNAFolD[options] [input sequence]
+Usage: Spark[options] [-r "input structure"] [input sequence]
 ```
 
 Read input file from cmdline; predict minimum free energy and optimum structure using the time- and space-efficient MFE RNA folding algorithm.
@@ -49,34 +47,52 @@ Read input file from cmdline; predict minimum free energy and optimum structure 
   -h, --help             Print help and exit
   -V, --version          Print version and exit
   -v, --verbose          Turn on verbose output
-  -m, --mark-candidates  Represent candidate base pairs by square brackets
-  -r, --input-structure  Give a restricted structure as an input structure
+  -m, --mark-candidates  Represent candidate base pairs by curly brackets
+  -r, --input-structure  Give a restricted structure as an input structure (required for pseudoknots)
+  -p, --pseudoknot-free  Turn off pseudoknot prediction
+  -k, --pk-only          Only predict base pairs which cross the given input structure
   -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')
   -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.
-  --noGC                 Turn off garbage collection and related overhead
+      --noGC             Turn off garbage collection and related overhead
+      --noGU             Turn off Wobble base pairing
 ```
 
 #### Example:
-    assume you are in the KnotAli directory
-    ./build/src/SparseRNAFolD GGGGAAAACCCC
-    ./build/src/SparseRNAFolD GGGGAAAACCCC -r "((........))" -d1
+    assume you are in the Spark directory
+    ./build/src/Spark GGGGAAAACCCC
+    ./build/src/Spark -d1 -r "((........))" GGGGAAAACCCC
+    ./build/src/Spark -d1 -P "src/params/parameters_DP09_Vienna.txt" -r "((........))" GGGGAAAACCCC
 
 ```
-./build/src/Spark -m -v UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA
+./build/Spark -m -v -r "...............(((((((...)))))))..................." UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA
 
 UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA
-.[[(((..(..[((.[[[([[[...]]])]]].))]...)..)))]].... (-6.00)
+{{{({....})}}}.((((((([[[)))))))............]]].... (-7.95)
 
-TA cnt:165
-TA max:167
-TA av:167
-TA rm:6
+TA cnt: 63
+TA max: 63
+TA av:  61
+TA rm:  3
 
-Can num:109
-Can cap:118
-TAs num:165
-TAs cap:169
+Can num:        47
+Can cap:        52
+TAs num:        63
+TAs cap:        64
+
+Psuedoknotted
+
+TAs num:        1
+TAs cap:        1
+TA av:  5
+TA rm:  0
+
+WMB Can num:    6
+WMB Can cap:    7
+VP Can num:     25
+VP Can cap:     25
+BE Can num:     7
+BE Can cap:     7
 ```
-    
-## Results
-Results can be found at https://github.com/mateog4712/SparseRNAFolD-RawData
+
+## Questions
+For questions, you can email mateo2@ualberta.ca

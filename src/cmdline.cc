@@ -28,10 +28,10 @@ const char *args_info_help[] = {
   "  -h, --help             Print help and exit",
   "  -V, --version          Print version and exit",
   "  -v, --verbose          Turn on verbose output",
-  "  -m, --mark-candidates  Represent candidate base pairs by square brackets",
+  "  -m, --mark-candidates  Represent candidate base pairs by curly brackets",
   "  -r, --input-structure  Give a restricted structure as an input structure",
   "  -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')",
-  "  -p, --pseudoknot-free       Turn off Psuedoknot prediction",
+  "  -p, --pseudoknot-free  Turn off Psuedoknot prediction",
   "  -k  --pk-only          Use the pk_only version of Spark"
   "  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.\n",
   "      --noGC             Turn off garbage collection and related overhead",
