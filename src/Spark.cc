@@ -14,6 +14,7 @@
 #include "matrix.hh"
 #include "trace_arrow.hh"
 #include "sparse_tree.cc"
+#include <sstream>
 #include <iostream>
 #include <iomanip>
 #include <vector>
