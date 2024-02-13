@@ -1636,7 +1636,7 @@ void trace_WI(const std::string& seq, const std::vector< cand_list_td1 >& CL, co
 
 	// How to do one base backwards?
 
-	if(e == WI[j-1] + params->PUP_penalty){
+	if(e == WI[j-1] + PUP_penalty){
 		trace_WI(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WI,n,mark_candidates,i,j-1,WI[j-1],tree);
 		return;
 	}
@@ -1725,7 +1725,7 @@ void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, 
 	cand_pos_t bp_ij = tree.bp(i,j);
 	energy_t VP_ij = INF;
 	
-	if(WMBP[j] == WMBP[j-1] + params->PUP_penalty){
+	if(WMBP[j] == WMBP[j-1] + PUP_penalty){
 		trace_WMBP(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WMBP,n,mark_candidates,i,j-1,WMBP[j-1],tree);
 		return;
 	}
@@ -1834,11 +1834,11 @@ void trace_BE(const std::string& seq, const std::vector< cand_list_td1 >& CL, co
 
 	
 	
-	if(e == lrint(params->e_stP_penalty*E_IntLoop(lp-i-1,j-l-1,ptype_closing_ij,rtype[pair[S[lp]][S[l]]],S1[i+1],S1[j-1],S1[lp-1],S1[l+1],const_cast<paramT *>(params))) + BE_energy){
+	if(e == lrint(e_stP_penalty*E_IntLoop(lp-i-1,j-l-1,ptype_closing_ij,rtype[pair[S[lp]][S[l]]],S1[i+1],S1[j-1],S1[lp-1],S1[l+1],const_cast<paramT *>(params))) + BE_energy){
 		trace_BE(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,n,mark_candidates,lp,ip,BE_energy,tree);
 		return;
 	}
-	if(e == lrint(params->e_intP_penalty*E_IntLoop(lp-i-1,j-l-1,ptype_closing_ij,rtype[pair[S[lp]][S[l]]],S1[i+1],S1[j-1],S1[lp-1],S1[l+1],const_cast<paramT *>(params))) + BE_energy){
+	if(e == lrint(e_intP_penalty*E_IntLoop(lp-i-1,j-l-1,ptype_closing_ij,rtype[pair[S[lp]][S[l]]],S1[i+1],S1[j-1],S1[lp-1],S1[l+1],const_cast<paramT *>(params))) + BE_energy){
 		trace_BE(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,n,mark_candidates,lp,ip,BE_energy,tree);
 		return;
 	}
@@ -1992,10 +1992,8 @@ energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, st
 	const pair_type ptype_closing_iip = pair[S[i]][S[ip]];
     
     energy_t m1 = INF, m2 = INF, m3 = INF, m4 = INF, m5 = INF,val=INF;
-    // // if (fres[i+1].pair == ip-1){
     if(i+1 == lp && ip-1 == l){
-        // m1 = (energy_t)round(params->e_stP_penalty*(double)ILoopE(S,S1,params,ptype_closing_iip,i,ip,lp,l)) + BE_energy;
-		m1 = lrint(params->e_stP_penalty*E_IntLoop(lp-i-1,ip-l-1,ptype_closing_iip,rtype[pair[S[lp]][S[l]]],S1[i+1],S1[ip-1],S1[lp-1],S1[l+1],const_cast<paramT *>(params))) + BE_energy;
+		m1 = lrint(e_stP_penalty*E_IntLoop(lp-i-1,ip-l-1,ptype_closing_iip,rtype[pair[S[lp]][S[l]]],S1[i+1],S1[ip-1],S1[lp-1],S1[l+1],const_cast<paramT *>(params))) + BE_energy;
 
         val = std::min(val,m1);
     }
@@ -2006,39 +2004,29 @@ energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, st
 	bool weakly_closed_lip = sparse_tree.weakly_closed(l+1,ip-1); // weakly closed between l+1 and ip-1
         
     if (empty_region_ilp && empty_region_lip){
-        // m2 = (energy_t)round(params->e_intP_penalty*(double)ILoopE(S,S1,params,ptype_closing_iip,i,ip,lp,l)) + BE_energy;
-		m2 = lrint(params->e_intP_penalty*E_IntLoop(lp-i-1,ip-l-1,ptype_closing_iip,rtype[pair[S[lp]][S[l]]],S1[i+1],S1[ip-1],S1[lp-1],S1[l+1],const_cast<paramT *>(params))) + BE_energy;
-
+		m2 = lrint(e_intP_penalty*E_IntLoop(lp-i-1,ip-l-1,ptype_closing_iip,rtype[pair[S[lp]][S[l]]],S1[i+1],S1[ip-1],S1[lp-1],S1[l+1],const_cast<paramT *>(params))) + BE_energy;
         val = std::min(val,m2);
     }
 
-        // 3)
+        // 3
     if (weakly_closed_ilp && weakly_closed_lip){
-
-		
-        // get_WIP(i+1,l-1)
-        // get_WIP(lp+1,ip-1)
-        // m3 = wiilp[l-1] + BE_energy + wilip[ip-1]+ params->ap_penalty + 2*params->bp_penalty;
         m3 = dwip1[lp-1] + BE_energy + WIP_Bp[l+1] + ap_penalty + 2*bp_penalty;
         val = std::min(val,m3);
     }
 
-        // 4)
+        // 4
     if (weakly_closed_ilp && empty_region_lip){
-        // m4 = wiilp[l-1] + BE_energy + params->cp_penalty * (ip-lp+1) + params->ap_penalty + 2*params->bp_penalty;
-        m4 = dwip1[lp-1] + BE_energy + params->cp_penalty * (ip-l+1) + ap_penalty + 2*bp_penalty;
+        m4 = dwip1[lp-1] + BE_energy + cp_penalty * (ip-l+1) + ap_penalty + 2*bp_penalty;
         val = std::min(val,m4);
     }
 
-        // 5)
+        // 5
     if (empty_region_ilp && weakly_closed_lip){
 		
-        // m5 = params->ap_penalty + 2*params->bp_penalty + (params->cp_penalty * (l-i+1)) + BE_energy + wilip[ip-1];
-        m5 = ap_penalty + 2*bp_penalty + (params->cp_penalty * (lp-i+1)) + BE_energy + WIP_Bp[l+1];
+        m5 = ap_penalty + 2*bp_penalty + (cp_penalty * (lp-i+1)) + BE_energy + WIP_Bp[l+1];
         val = std::min(val,m5);
     }
 
-	// if(i==61 && j==196) printf("i is %d and j is %d and m1 is %d and m2 is %d and m3 is %d and m4 is %d and m5 is %d abd val is %d\n",i,j,m1,m2,m3,m4,m5,val);
 
     return(val);
         
@@ -2084,14 +2072,14 @@ energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 					}
 				}
 			}
-			m1 = 2*params->PB_penalty + tmp;
+			m1 = 2*PB_penalty + tmp;
 		}
 	}
 	
 
 	// 2) WMBP(i,j) = VP(i,j) + P_b
 	int i_mod = i % (MAXLOOP+1);
-	m2 = VP(i_mod,j) + params->PB_penalty;
+	m2 = VP(i_mod,j) + PB_penalty;
 
 	// check later if <0 or <-1
 
@@ -2109,7 +2097,7 @@ energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 					if(i==k) BE_energy = vbe;
 				}
 			
-				energy_t WI_energy = (l-1-(bp_il+1))> 4 ? WI_Bbp[l-1] : params->PUP_penalty*(l-1-(bp_il+1)+1);
+				energy_t WI_energy = (l-1-(bp_il+1))> 4 ? WI_Bbp[l-1] : PUP_penalty*(l-1-(bp_il+1)+1);
 				energy_t VP_energy = it->second;
 				energy_t sum = BE_energy + WI_energy + VP_energy;
 				
@@ -2157,7 +2145,7 @@ energy_t compute_WMB(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std::
 
 
 				energy_t WMBP_energy = WMBP[l];
-				energy_t WI_energy = (Bp_lj-1-(l+1)+1)> 4 ? WI_Bp[l+1] : params->PUP_penalty*(Bp_lj-1-(l+1)+1);
+				energy_t WI_energy = (Bp_lj-1-(l+1)+1)> 4 ? WI_Bp[l+1] : PUP_penalty*(Bp_lj-1-(l+1)+1);
 				energy_t sum = BE_energy + WMBP_energy + WI_energy;
 
 				m1 = std::min(m1,sum);
@@ -2234,29 +2222,29 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 	const pair_type ptype_closing = pair[S[i]][S[j]];
 	if(sparse_tree.tree[i].parent->index > 0 && sparse_tree.tree[j].parent->index < sparse_tree.tree[i].parent->index && Bp_ij >= 0 && B_ij >= 0 && bp_ij < 0){
 		energy_t WI_ipus1_BPminus = dwi1[Bp_ij-1];
-		energy_t WI_Bplus_jminus = (j-1-(B_ij+1))> 4 ? WI_Bbp[j-1] : params->PUP_penalty*(j-1-(B_ij+1)+1);
+		energy_t WI_Bplus_jminus = (j-1-(B_ij+1))> 4 ? WI_Bbp[j-1] : PUP_penalty*(j-1-(B_ij+1)+1);
 		
 		m1 = WI_ipus1_BPminus + WI_Bplus_jminus;
 		
 	}
 	if (sparse_tree.tree[i].parent->index < sparse_tree.tree[j].parent->index && sparse_tree.tree[j].parent->index > 0 && b_ij>= 0 && bp_ij >= 0 && Bp_ij < 0){
 		energy_t WI_i_plus_b_minus = dwi1[b_ij-1];
-		energy_t WI_bp_plus_j_minus = (j-1-(bp_ij+1))> 4 ? WI_Bbp[j-1] : params->PUP_penalty*(j-1-(bp_ij+1)+1);
+		energy_t WI_bp_plus_j_minus = (j-1-(bp_ij+1))> 4 ? WI_Bbp[j-1] : PUP_penalty*(j-1-(bp_ij+1)+1);
 		
 		m2 = WI_i_plus_b_minus + WI_bp_plus_j_minus;
 	}
 	
 	if(sparse_tree.tree[i].parent->index > 0 && sparse_tree.tree[j].parent->index > 0 && Bp_ij >= 0 && B_ij >= 0  && b_ij >= 0 && bp_ij>= 0){						
 		energy_t WI_i_plus_Bp_minus = dwi1[Bp_ij-1];
-		energy_t WI_B_plus_b_minus = (b_ij-1-(B_ij+1))> 4 ? WI_Bbp[b_ij-1] : params->PUP_penalty*(b_ij-1-(B_ij+1)+1);
-		energy_t WI_bp_plus_j_minus = (j-1-(bp_ij+1))> 4 ? WI_Bbp[j-1] : params->PUP_penalty*(j-1-(bp_ij+1)+1);
+		energy_t WI_B_plus_b_minus = (b_ij-1-(B_ij+1))> 4 ? WI_Bbp[b_ij-1] : PUP_penalty*(b_ij-1-(B_ij+1)+1);
+		energy_t WI_bp_plus_j_minus = (j-1-(bp_ij+1))> 4 ? WI_Bbp[j-1] : PUP_penalty*(j-1-(bp_ij+1)+1);
 		
 		m3 = WI_i_plus_Bp_minus + WI_B_plus_b_minus + WI_bp_plus_j_minus;
 	}
 	if(sparse_tree.tree[i+1].pair < -1 && sparse_tree.tree[j-1].pair < -1){
 		cand_pos_t ip1_mod = (i+1)%(MAXLOOP+1);
 		
-		m4 = lrint(params->e_stP_penalty*ILoopE(S,S1,params,ptype_closing,i,j,i+1,j-1)) + VP(ip1_mod,j-1);
+		m4 = lrint(e_stP_penalty*ILoopE(S,S1,params,ptype_closing,i,j,i+1,j-1)) + VP(ip1_mod,j-1);
 	}
 	
 	cand_pos_t best_k = 0;
@@ -2334,7 +2322,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 		energy_t VP_i_split = INF;
 		if(pseudoknot){
 			for(cand_pos_t j=i;j<=n && sparse_tree.tree[j].pair<0;++j){
-				WI[j] = (j-i+1)*params->PUP_penalty;
+				WI[j] = (j-i+1)*PUP_penalty;
 			}
 		}
 
@@ -2367,13 +2355,13 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 				w_split = std::min( w_split, W[k-1] + v_kjw );
 
 				//WI portion
-				energy_t v_kjj = it->second + params->PPS_penalty;
+				energy_t v_kjj = it->second + PPS_penalty;
 				wi_split = std::min(wi_split,WI[k-1] + v_kjj);
 				// if(i==50 && j==279) printf("i is %d and k is %d and j is %d and wi is %d and vkj is %d\n",i,k,j,WI[k-1],v_kjj);
 				//WIP portion
-				v_kjj = it->second + params->bp_penalty;
+				v_kjj = it->second + bp_penalty;
 				wip_split = std::min(wip_split,WIP[k-1]+v_kjj);
-				if(can_pair) wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*params->cp_penalty) +v_kjj);
+				if(can_pair) wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*cp_penalty) +v_kjj);
 
 	
 			}
@@ -2388,10 +2376,10 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					bool can_pair = sparse_tree.up[k-1] >= (k-i);
 
 					// For W
-					energy_t wmb_kj = it->second + params->PS_penalty;
+					energy_t wmb_kj = it->second + PS_penalty;
 					w_split = std::min( w_split, W[k-1] + wmb_kj );
 					// For WM -> I believe this would add a PSM penalty for every pseudoknot which would be bad
-					wmb_kj = it->second + params->PSM_penalty + params->b_penalty;
+					wmb_kj = it->second + PSM_penalty + b_penalty;
 					wm_split = std::min(wm_split, WM[k-1] + wmb_kj);
 					if(can_pair) wm_split = std::min(wm_split,static_cast<energy_t>((k-i)*params->MLbase) + wmb_kj);
 					wm2_split = std::min( wm2_split, WM[k-1] + wmb_kj );
@@ -2402,17 +2390,17 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					// if(i==50 && j==279) printf("i is %d and k is %d and j is %d and wi is %d and wmbkj is %d\n",i,k,j,WI[k-1],wmb_kj);
 
 					// For WIP
-					wmb_kj = it->second + params->PSM_penalty + params->bp_penalty;
+					wmb_kj = it->second + PSM_penalty + bp_penalty;
 					wip_split = std::min(wip_split,WIP[k-1]+wmb_kj);
-					if(can_pair) wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*params->cp_penalty) +wmb_kj);
+					if(can_pair) wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*cp_penalty) +wmb_kj);
 				}
 			}
 
 			if(sparse_tree.tree[j].pair<0) w_split = std::min(w_split,W[j-1]);
 			if(sparse_tree.tree[j].pair<0) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
 			if(sparse_tree.tree[j].pair<0) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
-			if(sparse_tree.tree[j].pair<0) wi_split = std::min(wi_split,WI[j-1] + params->PUP_penalty);
-			if(sparse_tree.tree[j].pair<0) wip_split = std::min(wip_split,WIP[j-1] + params->cp_penalty);
+			if(sparse_tree.tree[j].pair<0) wi_split = std::min(wi_split,WI[j-1] + PUP_penalty);
+			if(sparse_tree.tree[j].pair<0) wip_split = std::min(wip_split,WIP[j-1] + cp_penalty);
 
 			
 			energy_t w  = w_split; // entry of W w/o contribution of V
@@ -2572,7 +2560,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 							if(sparse_tree.tree[j].parent->index != sparse_tree.tree[k].parent->index) continue;
 							WMBA[j] = std::min(WMBA[j],WMBA[k-1] + it->second + PPS_penalty + PSM_penalty);
 						}
-						if(sparse_tree.tree[j].pair < 0) WMBA[j] = std::min(WMBA[j],WMBA[j-1] + params->PUP_penalty);
+						if(sparse_tree.tree[j].pair < 0) WMBA[j] = std::min(WMBA[j],WMBA[j-1] + PUP_penalty);
 	
 					}
 					WMBA[j] = std::min(WMBA[j],WMBP[j]);
@@ -2594,11 +2582,11 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 				}
 				else{
 					
-					wi_v = V(i_mod,j) + params->PPS_penalty;
-					wip_v = V(i_mod,j)	+ params->bp_penalty;
+					wi_v = V(i_mod,j) + PPS_penalty;
+					wip_v = V(i_mod,j)	+ bp_penalty;
 					
-					wi_wmb = WMB[j] + params->PSM_penalty + params->PPS_penalty;
-					wip_wmb = WMB[j] + params->PSM_penalty + params->bp_penalty;
+					wi_wmb = WMB[j] + PSM_penalty + PPS_penalty;
+					wip_wmb = WMB[j] + PSM_penalty + bp_penalty;
 
 
 					WI[j] = std::min({wi_v,wi_wmb,wi_split});
