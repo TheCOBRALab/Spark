@@ -2546,7 +2546,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 					const energy_t wmbp = compute_WMBP(i,j,sparse_tree,CL,CLWMB,CLVP,CLBE,VP,WMBP,WI_Bbp,params,w_wmb,wm_wmb);
 					WMBP[j] = wmbp;
 
-
+					// WMBA criteria
 					if(sparse_tree.tree[j].parent->index>0){
 		
 						for ( auto it = CL[j].begin(); CL[j].end()!=it; ++it ) {
@@ -2563,6 +2563,10 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 						if(sparse_tree.tree[j].pair < 0) WMBA[j] = std::min(WMBA[j],WMBA[j-1] + PUP_penalty);
 	
 					}
+					else{
+						WMBA[j] = INF;
+					}
+					
 					WMBA[j] = std::min(WMBA[j],WMBP[j]);
 
 					const energy_t wmb = compute_WMB(i,j,sparse_tree,CLBE,WMBP,WMBA,WI_Bp,params);
