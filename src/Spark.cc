@@ -2736,7 +2736,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 		compactify(ta);
 		compactify(taVP);
 	}
-	std::cout << "BE avoided: " << BE_avoided << std::endl;
+	// std::cout << "BE avoided: " << BE_avoided << std::endl;
 	return W[n];
 }
 
