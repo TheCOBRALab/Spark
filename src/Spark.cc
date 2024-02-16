@@ -1379,7 +1379,6 @@ void trace_VP(const std::string& seq, const std::vector< cand_list_td1 >& CL, co
 	cand_pos_t Bp_ij = tree.Bp(i,j);
 	cand_pos_t b_ij = tree.b(i,j);
 	cand_pos_t bp_ij = tree.bp(i,j);
-	
 	if(tree.tree[i].parent->index > 0 && tree.tree[j].parent->index < tree.tree[i].parent->index && Bp_ij >= 0 && B_ij >= 0 && bp_ij < 0){
 		std::vector<energy_t> WI_ip1;
 		std::vector<energy_t> WI_jm1;
@@ -2225,7 +2224,6 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 		energy_t WI_Bplus_jminus = (j-1-(B_ij+1))> 4 ? WI_Bbp[j-1] : PUP_penalty*(j-1-(B_ij+1)+1);
 		
 		m1 = WI_ipus1_BPminus + WI_Bplus_jminus;
-		
 	}
 	if (sparse_tree.tree[i].parent->index < sparse_tree.tree[j].parent->index && sparse_tree.tree[j].parent->index > 0 && b_ij>= 0 && bp_ij >= 0 && Bp_ij < 0){
 		energy_t WI_i_plus_b_minus = dwi1[b_ij-1];
@@ -2362,7 +2360,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 				v_kjj = it->second + bp_penalty;
 				wip_split = std::min(wip_split,WIP[k-1]+v_kjj);
 				if(can_pair) wip_split = std::min(wip_split,static_cast<energy_t>((k-i)*cp_penalty) +v_kjj);
-
+				
 	
 			}
 
@@ -2676,7 +2674,8 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			w  = std::min({w_v, w_split,w_wmb});
 			wm = std::min({wm_v, wm_split,wm_wmb});
 
-			if ( w_v < w_split || wm_v < wm_split || paired) {
+			// Some case of WI candidate splits will show INf as a vkj value as we are unable to do dangle versions yet but there are dangle candidates
+			if (w_v < w_split || wm_v < wm_split || wi_v < wi_split || wip_v < wip_split || paired) {
 				// cand_pos_t k_mod = k%(MAXLOOP+1);
 				// Encode the dangles into the energies
 				energy_t w_enc = (w_v << 2) | d;
@@ -2694,6 +2693,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			W[j]       = w;
 			WM[j]      = wm;
 			WM2[j]     = std::min(wm2_split,WMB[j] + PSM_penalty + b_penalty);
+
 
 		} // end loop j
 		rotate_arrays(WM2,dmli1,dmli2,WI,WIP,dwi1,dwip1,WMB,dwmbi,WV,dwvp);
