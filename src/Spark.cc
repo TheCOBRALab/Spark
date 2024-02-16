@@ -1440,7 +1440,6 @@ void trace_VP(const std::string& seq, const std::vector< cand_list_td1 >& CL, co
 				if(k-i > 31) continue;
 				// energy_t temp = (int)round(((j-l==1 && k-i==1) ? e_stP_penalty : e_intP_penalty )*ILoopE(S,S1,params,ptype_closing,i,j,k,l));
 				energy_t temp = lrint(((j-l==1 && k-i==1) ? e_stP_penalty : e_intP_penalty )*E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)));
-
 				if (  e == it->second + temp ) {
 					trace_VP(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,n,mark_candidates,k,l,it->second,tree);
 					return;
@@ -2203,7 +2202,6 @@ energy_t compute_VP_internal(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_p
 			
 			
 		}
-
 	return m5;
 }
 
@@ -2244,6 +2242,7 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 		
 		m4 = lrint(e_stP_penalty*ILoopE(S,S1,params,ptype_closing,i,j,i+1,j-1)) + VP(ip1_mod,j-1);
 	}
+
 	
 	cand_pos_t best_k = 0;
 	cand_pos_t best_l = 0;
@@ -2257,6 +2256,12 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 
 	energy_t vp_h = std::min({m1,m2,m3});
 	energy_t vp_iloop = std::min(m4,m5);
+	if(m4<m5){
+		best_k = i+1;
+		best_l = j-1;
+		cand_pos_t ip1_mod = (i+1)%(MAXLOOP+1);
+		best_e = VP(ip1_mod,j-1);
+	}
 	energy_t vp_split = m6;
 	vp = std::min({vp_h,vp_iloop,vp_split});
 
@@ -2688,7 +2693,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 		
 				register_candidate(CLWMB, i, j, WMB[j]);
 
-			}	
+			}
 
 			W[j]       = w;
 			WM[j]      = wm;
