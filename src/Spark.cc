@@ -681,6 +681,7 @@ const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &C
 			// if(i==1 && j==209) printf("i is %d and j is %d and k is %d and VP is %d\n",i,j,it->first,it->second);
 			cand_pos_t k = it->first;
 			if(k==i) vp_ij = it->second;
+			cand_pos_t b_ik = tree.b(i,k);
 
 			energy_t vp_kj = it->second;
 
@@ -691,7 +692,7 @@ const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &C
 			cand_pos_t Bp_ik = (bp_ik>0) ? tree.tree[bp_ik].pair : -2;
 			energy_t BE_energy = INF;
 			if (tree.tree[k].parent->index > -1 && B_kj >= 0 && Bp_kj >= 0){
-				if (b_ij >= 0 && k < b_ij){
+				if (b_ik >= 0 && k>b_ik){
 					for ( auto it2 = CLBE[Bp_kj].begin();CLBE[Bp_kj].end()!=it2; ++it2 ) {
 						cand_pos_t l = it2->first;
 						if(l == b_kj){
@@ -1741,10 +1742,12 @@ void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, 
 		// Need to make sure I'm not doing tree.tree[-2].pair
 		cand_pos_t b_kj = (B_kj>0) ? tree.tree[B_kj].pair : -2;
 		cand_pos_t bp_ik = tree.bp(i,k);
+		cand_pos_t b_ik = tree.b(i,k);
 		cand_pos_t Bp_ik = (bp_ik>0) ? tree.tree[bp_ik].pair : -2;
 		energy_t BE_energy = INF;
+
 		if (tree.tree[k].parent->index > -1 && B_kj >= 0 && Bp_kj >= 0){
-			if (b_ij >= 0 && k < b_ij){
+			if (b_ik>0 && b_ik < k){
 				for ( auto it = CLBE[Bp_kj].begin();CLBE[Bp_kj].end()!=it; ++it ) {
 					cand_pos_t l = it->first;
 					if(l == b_kj){
@@ -1973,7 +1976,6 @@ energy_t compute_WV_WVe(cand_pos_t i, cand_pos_t j, cand_pos_t bound_left, cand_
 * @param j column index
 */
 energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, std::vector< cand_list_t> &CLBE, sparse_tree &sparse_tree,short *S,short *S1,paramT* params, const std::vector<energy_t> dwip1, const std::vector< energy_t >& WIP_Bp){
-// int compute_BE(int i, int j, int ip, int jp, int lp, int l, auto &S, auto &S1, auto &WIP_Bbp){
     // We are checking for the closest pair that we have already calculated to i/ip from j/jp 
     // If there is nothing, then i is the closest encompassing pair to jp
     // If it is not, then we get the energy for everything from jp to lp so that we calculate less
@@ -2040,7 +2042,7 @@ energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, st
 * @param i row index
 * @param j column index
 */
-energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std::vector<cand_list_td1> &CL, std::vector<cand_list_t> &CLWMB, std::vector<cand_list_t> &CLVP, std::vector<cand_list_t> &CLBE, LocARNA::Matrix<energy_t> &VP, std::vector<energy_t> &WMBP, std::vector<energy_t> &WI_Bbp, paramT* params,energy_t &w_wmb, energy_t &wm_wmb){
+energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std::vector<cand_list_td1> &CL, std::vector<cand_list_t> &CLWMB, std::vector<cand_list_t> &CLVP, std::vector<cand_list_t> &CLBE, LocARNA::Matrix<energy_t> &VP, std::vector<energy_t> &WMBA, std::vector<energy_t> &WI_Bbp, paramT* params,energy_t &w_wmb, energy_t &wm_wmb){
 	energy_t m1 = INF, m2 = INF, m3 = INF, m4 = INF, m5 = INF, m6 = INF, wmbp = INF;
 	// 1) WMBP(i,j) = BE(bpg(Bp(l,j)),Bp(l,j),bpg(B(l,j)),B(l,j)) + WMBP(i,l) + VP(l+1,j)
 	const cand_pos_t b_ij = sparse_tree.b(i,j);
@@ -2051,9 +2053,10 @@ energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 			cand_pos_t l = it->first;
 			cand_pos_t B_lj = sparse_tree.B(l,j);
 			cand_pos_t Bp_lj = sparse_tree.Bp(l,j);
+			cand_pos_t b_il = sparse_tree.b(i,l);
 			// removing the <n for the B and b as it should always be less than n
 			if (sparse_tree.tree[l].parent->index > -1 && B_lj >= 0 && Bp_lj >= 0){
-				if (b_ij >= 0 && l < b_ij){
+				if (b_il>0 && b_il < l){
 					if (i <= sparse_tree.tree[l].parent->index && sparse_tree.tree[l].parent->index < j && l+3 <=j){
 						energy_t BE_energy = INF;
 						cand_pos_t b_lj = sparse_tree.tree[B_lj].pair;
@@ -2064,9 +2067,9 @@ energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 								break;
 							}
 						}
-						energy_t WMBP_energy = WMBP[l-1];
+						energy_t WMBA_energy = WMBA[l-1];
 						energy_t VP_energy = it->second;
-						energy_t sum = BE_energy + WMBP_energy + VP_energy;
+						energy_t sum = BE_energy + WMBA_energy + VP_energy;
 
 						tmp = std::min(tmp,sum);
 					}
@@ -2107,7 +2110,6 @@ energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 		
 		m3 = 2*PB_penalty + tmp;
 	}
-
 // get the min for WMB
 wmbp = std::min({m1,m2,m3});
 
@@ -2351,6 +2353,10 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
 				// WM2 Portion
 				wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
+				// if(i==9 && j==97 && k ==64) printf("i is %d and j is %d and k is %d and wm is %d\n",i,j,k,wm2_split);
+				// if(i==9 && j==160 && k ==112) printf("i is %d and j is %d and k is %d and wm is %d\n",i,j,k,wm2_split);
+				// if(i==9 && j==181 && k ==161) printf("i is %d and j is %d and k is %d and wm is %d\n",i,j,k,wm2_split);
+				// if(i==9 && j==181 && k ==161) printf("i is %d and j is %d and k is %d and wm is %d\n",i,j,k,wm2_split);
 				// W Portion
 				w_split = std::min( w_split, W[k-1] + v_kjw );
 
@@ -2458,7 +2464,6 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 						register_trace_arrow(ta,i,j,best_k,best_l,best_e);
 					}
 				}
-
 				V(i_mod,j) = v;
 			} else {
 				V(i_mod,j) = INF;
@@ -2474,6 +2479,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,sparse_tree.tree);
 			// Checking the dangle positions for W
 			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,sparse_tree.tree);
+			// if(i==7 && j==183) printf("i is %d and j is %d and wm2 is %d wm2ip1 is %d and wm2jm1 is %d and wm2ip1jm1 is %d\n",i,j,dmli1[j-1],dmli2[j-1],dmli1[j-2],dmli2[j-2]);
 
 			cand_pos_t k = i;
             cand_pos_t l = j;
@@ -2543,7 +2549,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 
 				}
 				else{
-					const energy_t wmbp = compute_WMBP(i,j,sparse_tree,CL,CLWMB,CLVP,CLBE,VP,WMBP,WI_Bbp,params,w_wmb,wm_wmb);
+					const energy_t wmbp = compute_WMBP(i,j,sparse_tree,CL,CLWMB,CLVP,CLBE,VP,WMBA,WI_Bbp,params,w_wmb,wm_wmb);
 					WMBP[j] = wmbp;
 
 					// WMBA criteria
@@ -2675,7 +2681,6 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 			wm_wmb = sparse_tree.weakly_closed(i,j) ? WMB[j] + PSM_penalty + b_penalty : INF;
 			w  = std::min({w_v, w_split,w_wmb});
 			wm = std::min({wm_v, wm_split,wm_wmb});
-
 			if ( w_v < w_split || wm_v < wm_split || paired) {
 				// cand_pos_t k_mod = k%(MAXLOOP+1);
 				// Encode the dangles into the energies
@@ -2689,12 +2694,16 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 		
 				register_candidate(CLWMB, i, j, WMB[j]);
 
-			}	
+			}
+			// if(i==9 && j==59) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==65 && j==96) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==113 && j==159) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==161 && j==180) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			// if(i==7 && j==183) printf("i is %d and j is %d and v is %d\n",i,j,v);	
 
 			W[j]       = w;
 			WM[j]      = wm;
 			WM2[j]     = std::min(wm2_split,WMB[j] + PSM_penalty + b_penalty);
-
 		} // end loop j
 		rotate_arrays(WM2,dmli1,dmli2,WI,WIP,dwi1,dwip1,WMB,dwmbi,WV,dwvp);
 
@@ -2736,7 +2745,7 @@ energy_t fold(const std::string& seq, sparse_tree sparse_tree, LocARNA::Matrix<e
 		compactify(ta);
 		compactify(taVP);
 	}
-	std::cout << "BE avoided: " << BE_avoided << std::endl;
+	// std::cout << "BE avoided: " << BE_avoided << std::endl;
 	return W[n];
 }
 
