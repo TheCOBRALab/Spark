@@ -69,10 +69,10 @@ void gc_trace_arrow(TraceArrows &t, cand_pos_t i, cand_pos_t j) {
     
     if (ta.source_ref_count() == 0) {
         // get trace arrow from the target if the arrow exists
-        if (exists_trace_arrow_from(t,ta.k(i,j),ta.l(i,j))) {
-            auto &target_ta = trace_arrow_from(t,ta.k(i,j),ta.l(i,j));
+        if (exists_trace_arrow_from(t,ta.k(i),ta.l(j))) {
+            auto &target_ta = trace_arrow_from(t,ta.k(i),ta.l(j));
             target_ta.dec_src();
-            gc_trace_arrow(t,ta.k(i,j),ta.l(i,j));
+            gc_trace_arrow(t,ta.k(i),ta.l(j));
         }
         
         t.trace_arrow_[i].erase(col);
@@ -84,7 +84,7 @@ void gc_trace_arrow(TraceArrows &t, cand_pos_t i, cand_pos_t j) {
 void gc_row(TraceArrows &t, cand_pos_t i ) {
     assert(i<=t.n_);
     // i + TURN + 1
-    for (cand_pos_tu j=i+4; j<=t.n_ ; j++) {
+    for (cand_pos_t j=i+4; j<=t.n_ ; j++) {
 	    if (! t.trace_arrow_[i].exists(j)) continue;
 	    gc_trace_arrow(t,i,j);
     }

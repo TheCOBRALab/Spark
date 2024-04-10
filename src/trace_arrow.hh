@@ -37,8 +37,8 @@ public:
      */
     TraceArrow() {}
 
-    cand_pos_t k(cand_pos_t i,cand_pos_t j) const {return k_+i;}
-    cand_pos_t l(cand_pos_t i,cand_pos_t j) const {return j-l_;}
+    cand_pos_t k(cand_pos_t i) const {return k_+i;}
+    cand_pos_t l(cand_pos_t j) const {return j-l_;}
     energy_t target_energy() const {return energy_;}
     cand_pos_t source_ref_count() const {return count_;}
 
