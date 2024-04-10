@@ -1,5 +1,6 @@
 #include <iomanip>
 #include <vector>
+#include <cassert>
 
 #define maxSize 14 // 2^14 for sparse table
 
@@ -223,6 +224,8 @@ class sparse_tree{
          * Returns the left innermost pair in a band between i and l
         */
         int bp(int i, int l ) const{
+            assert(l>0);
+            assert(i>0);
             if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
             if ((tree[l].parent)->index < i) return -1;
             return (tree[l].parent)->index;
@@ -231,6 +234,8 @@ class sparse_tree{
          * Returns the right innermost pair in a band between l and j
         */
         int Bp(int l, int j) const{
+            assert(l>0);
+            assert(j>0);
             if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
             if ((tree[l].parent)->pair > j) return -1;
             return (tree[l].parent)->pair;
@@ -239,6 +244,8 @@ class sparse_tree{
          * Returns the right outermostpair in a band between l and j
         */
         int B(int l, int j) const{
+            assert(l>0);
+            assert(j>0);
             if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
             if ((tree[l].parent)->pair > j) return -1;
             else{
@@ -252,6 +259,8 @@ class sparse_tree{
         }
         // Returns the left outermost pair in a band between i and l
         int b(int i, int l) const{
+            assert(l>0);
+            assert(i>0);
             if(tree[l].parent->index == 0 || tree[l].pair > -1) return -2;
             if ((tree[l].parent)->index < i) return -1;
             else{
@@ -285,58 +294,3 @@ class sparse_tree{
         ~sparse_tree(){
         }
 };
-
-// int main(int argc, char const *argv[])
-// {
-//     // std::string input = ".((..((.(...).))..((...))..)).";
-//     std::string input = "((...((...)).))";
-//     // std::string input = "(.(((((((........)))))....(((........))))).).(((((((((..(((((...(((((((.....(((.((((((...((((((((.(...((((((((((.(((((.(((.(((((((((.((((((((.((((....)))).)))))))).))))........(((((......(((....(((....)))....)))....))))).))))).)))..)))))))...))))))))).)))))))).)))))))))))))))).....)))))..)))))))))....";
-//     int n = input.length();
-//     sparse_tree tree(input,n);
-
-//     // std::cout << tree.tree[8].parent->index << std::endl;
-//     // std::cout << tree.bp(3,8) << std::endl;
-//     // std::cout << tree.Bp(3,8) << std::endl;
-//     // std::cout << tree.b(3,8) << std::endl;
-//     // std::cout << tree.B(3,8) << std::endl;
-
-//     // std::cout << tree.bp(8,13) << std::endl;
-//     std::cout << tree.weakly_closed(3,13) << std::endl;
-//     std::cout << tree.tree[3].parent->index << "   " << tree.tree[3].parent->index << std::endl;
-//     // std::cout << tree.b(8,13) << std::endl;
-//     // std::cout << tree.B(8,13) << std::endl;
-    
-//     // std::cout << tree.Bp(4,26) << std::endl;
-//     // std::cout << tree.bp(4,26) << std::endl;
-//     // std::cout << tree.Bp(0,29) << std::endl;
-//     // std::cout << tree.bp(0,29) << std::endl;
-//     // std::cout << "b: " << tree.b(9,22) << std::endl;
-//     // std::cout << "B: " << tree.B(9,22) << std::endl;
-//     // for(auto x:tree.euler){
-//     //     std::cout << x << " ";
-//     // }
-//     // //  std::cout << std::endl;
-//     // // for(int i= 0; i<tree.euler.size();++i){
-//     // //     std::cout << tree.level[i] << " ";
-//     // // }
-//     // std::cout << std::endl;
-//     // for(int i= 0; i<tree.euler.size();++i){
-//     //     std::cout << tree.depthArr[i] << " ";
-//     // }
-//     // std::cout << std::endl;
-//     // for(int i= 0; i<tree.euler.size();++i){
-//     //     std::cout << tree.FAI[i] << " ";
-//     // }
-//     // std::cout << std::endl;
-// for(int j =0;j<4;++j){
-//     for(int i = 0; i<tree.euler.size();++i){
-        
-//             std::cout << tree.sparse_table[i][j] << " ";
-        
-        
-//     }
-//     std::cout << std::endl;
-// }
-
-// return 0;
-// }
