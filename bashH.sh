@@ -1,6 +1,6 @@
 input=$1
-file="/home/mgray7/output3/fasta/$input.txt";
-file2="/home/mgray7/output3/structuresH/$input.txt";
+file="/Users/mateo2/Documents/Code/output/fasta/$input.txt";
+file2="/Users/mateo2/Documents/Code/output/structuresH/$input.txt";
 exec 5<$file
 exec 6<$file2
 while read line1 <&5 && read line2 <&6; do
