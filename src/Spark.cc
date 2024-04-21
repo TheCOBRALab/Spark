@@ -1729,14 +1729,13 @@ void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, 
 		trace_WMBP(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WMBP,n,mark_candidates,i,j-1,WMBP[j-1],tree);
 		return;
 	}
-
+	cand_pos_t b_ij = tree.b(i,j);
 	for ( auto it = CLVP[j].begin();CLVP[j].end()!=it && it->first>=i ; ++it ) {
 		cand_pos_t k = it->first;
 		if(k==i) VP_ij = it->second; //second?
 
 		cand_pos_t bp_ik = tree.bp(i,k);
 		cand_pos_t Bp_kj = tree.Bp(k,j);
-		cand_pos_t b_ij = tree.b(i,j);
 		if (b_ij > 0 && k < b_ij){
 			if (bp_ik >= 0 && k>bp_ik && Bp_kj > 0 && k<Bp_kj){
 				energy_t BE_energy = INF;
