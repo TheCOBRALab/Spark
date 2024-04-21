@@ -689,10 +689,10 @@ const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &C
 					cand_pos_t B_kj = tree.B(k,j);
 					cand_pos_t bp_kj = tree.tree[Bp_kj].pair;
 					cand_pos_t b_kj = (B_kj>0) ? tree.tree[B_kj].pair : -2;
-					for ( auto it = CLBE[Bp_kj].begin();CLBE[Bp_kj].end()!=it; ++it ) {
-						cand_pos_t l = it->first;
+					for ( auto it2 = CLBE[Bp_kj].begin();CLBE[Bp_kj].end()!=it2; ++it2 ) {
+						cand_pos_t l = it2->first;
 						if(l == b_kj){
-							BE_energy = it->second;
+							BE_energy = it2->second;
 							break;
 						}
 					}
@@ -708,10 +708,10 @@ const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &C
 			if(bp_ik >= 0 && k+TURN <= j){
 				cand_pos_t Bp_ik = tree.tree[bp_ik].pair;
 				energy_t BE_energy = INF;
-				for ( auto it = CLBE[Bp_ik].begin();CLBE[Bp_ik].end()!=it; ++it ) {
-					cand_pos_t l = it->first;
+				for ( auto it2 = CLBE[Bp_ik].begin();CLBE[Bp_ik].end()!=it2; ++it2 ) {
+					cand_pos_t l = it2->first;
 					if(l == i){
-						BE_energy = it->second;
+						BE_energy = it2->second;
 						break;
 					}
 				}
@@ -1767,10 +1767,10 @@ void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, 
 		if(bp_ik >= 0 && k+TURN <= j){
 			cand_pos_t Bp_ik = tree.tree[bp_ik].pair;
 			energy_t BE_energy = INF;
-			for ( auto it = CLBE[Bp_ik].begin();CLBE[Bp_ik].end()!=it; ++it ) {
-				cand_pos_t l = it->first;
+			for ( auto it2 = CLBE[Bp_ik].begin();CLBE[Bp_ik].end()!=it2; ++it2 ) {
+				cand_pos_t l = it2->first;
 				if(l == i){
-					BE_energy = it->second;
+					BE_energy = it2->second;
 					break;
 				}
 			}
@@ -2050,11 +2050,11 @@ energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 	// 1) WMBP(i,j) = BE(bpg(Bp(l,j)),Bp(l,j),bpg(B(l,j)),B(l,j)) + WMBP(i,l) + VP(l+1,j)
 	if (sparse_tree.tree[j].pair < 0){
 		energy_t tmp = INF;
+		cand_pos_t b_ij = sparse_tree.b(i,j);
 		for ( auto it = CLVP[j].begin();CLVP[j].end()!=it; ++it ) {
 			cand_pos_t l = it->first;
 			cand_pos_t bp_il = sparse_tree.bp(i,l);
 			cand_pos_t Bp_lj = sparse_tree.Bp(l,j);
-			cand_pos_t b_ij = sparse_tree.b(i,j);
 			if (b_ij > 0 && l < b_ij){
 				if (bp_il >= 0 && l>bp_il && Bp_lj > 0 && l<Bp_lj){//if(sparse_tree.b(i,j)>=0 && l <sparse_tree.b(i,j)){//
 					cand_pos_t B_lj = sparse_tree.B(l,j);
