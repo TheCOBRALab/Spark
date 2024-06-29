@@ -2,6 +2,9 @@
 #define CMDLINE_H
 #include <string>
 
+#define Spark_CMDLINE_PACKAGE_NAME "Spark"
+
+#define Spark_CMDLINE_VERSION "1.0"
 
 // The restricted structure
 extern std::string input_structure;

@@ -69,7 +69,9 @@ static void init_args_info(struct args_info *args_info)
 void
 cmdline_parser_print_version (void)
 {
-  printf (" %s\n",(strlen(package_name) ? package_name : "Spark"));
+  printf ("%s %s\n",
+     (strlen(Spark_CMDLINE_PACKAGE_NAME) ? Spark_CMDLINE_PACKAGE_NAME : "Spark"),
+     Spark_CMDLINE_VERSION);
 
   if (strlen(args_info_versiontext) > 0)
     printf("\n%s\n", args_info_versiontext);
