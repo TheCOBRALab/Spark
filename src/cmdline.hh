@@ -15,6 +15,9 @@ extern std::string parameter_file;
 // The dangle model
 extern int dangle_model;
 
+// THe input file
+extern std::string input_file;
+
 /** @brief Where the command line options are stored */
 struct args_info
 {
@@ -23,6 +26,7 @@ struct args_info
   const char *verbose_help; /**< @brief Turn on verbose output help description.  */
   const char *mark_candidates_help; /**< @brief Represent candidate base pairs by square brackets help description.  */
   const char *input_structure_help; /**< @brief Give restricted structure as input help description.  */
+  const char *input_file_help; /**< @brief Give input file as input help description.  */
   const char *dangles_help; /**< @brief Give the number of dangles being used (1 or 2) */
   const char *pseudoknot_free_help; /**< @brief Turn off pseudoknot prediction */
   const char *pk_only_help; /**< @brief Turn on pk_only prediction */
@@ -36,6 +40,7 @@ struct args_info
   unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */
   unsigned int mark_candidates_given ;	/**< @brief Whether mark-candidates was given.  */
   unsigned int input_structure_given ;	/**< @brief Whether restricted structure was given.  */
+  unsigned int input_file_given ;	/**< @brief Whether restricted structure was given.  */
   unsigned int dangles_given ;	/**< @brief Whether restricted structure was given.  */
   unsigned int pseudoknot_free_given ;	/**< @brief Whether pseudoknot-free was given.  */
   unsigned int pk_only_given ;	/**< @brief Whether pseudoknot was given.  */

@@ -22,6 +22,8 @@
 #include <cstring>
 #include <string>
 #include <cassert>
+#include <sys/stat.h>
+#include <fstream>
 
 extern "C" {
 #include "ViennaRNA/pair_mat.h"
@@ -2812,6 +2814,28 @@ void validate_structure(std::string structure){
 	}
 }
 
+bool exists (const std::string path) {
+  struct stat buffer;   
+  return (stat (path.c_str(), &buffer) == 0); 
+}
+
+void get_input(std::string file, std::string &sequence, std::string &structure){
+	if(!exists(file)){
+		std::cout << "Input file does not exist" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	std::ifstream in(file.c_str());
+	std::string str;
+	int i = 0;
+	while(getline(in,str)){
+		if(str[0] == '>') continue;
+		if(i==0) sequence = str;
+		if(i==1) structure = str;
+		++i;
+	}
+	in.close();
+}
+
 /**
 * @brief Simple driver for @see Spark.
 *
@@ -2831,14 +2855,28 @@ int main(int argc,char **argv) {
 	if (args_info.inputs_num>0) {
 	seq=args_info.inputs[0];
 	} else {
-	std::getline(std::cin,seq);
+		if(!args_info.input_file_given) std::getline(std::cin,seq);
 	}
-	
-	cand_pos_t n = seq.length();
 
 	std::string restricted;
-    args_info.input_structure_given ? restricted = input_structure : restricted = std::string (n,'.');
+	if(args_info.input_structure_given) restricted = input_structure;
 
+
+	std::string fileI;
+    args_info.input_file_given ? fileI = input_file : fileI = "";
+
+	if(fileI != ""){
+		
+		if(exists(fileI)){
+			get_input(fileI,seq,restricted);
+		}
+		if(seq == ""){
+			std::cout << "sequence is missing from file" << std::endl; 
+		}
+		
+	}
+	cand_pos_t n = seq.length();
+	if(restricted == "") restricted = std::string('.',n);
 
 	if(restricted != "" && restricted.length() != (cand_pos_tu) n ){
 		std::cout << "input sequence and structure are not the same size" << std::endl;

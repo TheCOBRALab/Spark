@@ -12,6 +12,7 @@
 
 std::string input_structure;
 std::string parameter_file;
+std::string input_file;
 int dangle_model;
 
 static char *package_name = 0;
@@ -30,6 +31,7 @@ const char *args_info_help[] = {
   "  -v, --verbose          Turn on verbose output",
   "  -m, --mark-candidates  Represent candidate base pairs by curly brackets",
   "  -r, --input-structure  Give a restricted structure as an input structure",
+  "  -i, --input-file       Give a path to an input file containing the sequence (and input structure if known)",
   "  -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')",
   "  -p, --pseudoknot-free  Turn off Psuedoknot prediction",
   "  -k  --pk-only          Use the pk_only version of Spark"
@@ -56,13 +58,14 @@ static void init_args_info(struct args_info *args_info)
   args_info->version_help = args_info_help[1] ;
   args_info->verbose_help = args_info_help[2] ;
   args_info->mark_candidates_help = args_info_help[3] ;
-  args_info->input_structure_help = args_info_help[4] ;
-  args_info->dangles_help = args_info_help[5];
-  args_info->pseudoknot_free_help = args_info_help[6] ;
-  args_info->pk_only_help = args_info_help[7] ;
-  args_info->paramFile_help = args_info_help[8] ;
-  args_info->noGC_help = args_info_help[9] ;
-  args_info->noGU_help = args_info_help[10] ;
+  args_info->input_structure_help = args_info_help[4];
+  args_info->input_file_help = args_info_help[5];
+  args_info->dangles_help = args_info_help[6];
+  args_info->pseudoknot_free_help = args_info_help[7] ;
+  args_info->pk_only_help = args_info_help[8] ;
+  args_info->paramFile_help = args_info_help[9] ;
+  args_info->noGC_help = args_info_help[10] ;
+  args_info->noGU_help = args_info_help[11] ;
 
   
 }
@@ -112,6 +115,7 @@ static void clear_given (struct args_info *args_info)
   args_info->verbose_given = 0 ;
   args_info->mark_candidates_given = 0 ;
   args_info->input_structure_given = 0 ;
+  args_info->input_file_given = 0;
   args_info->dangles_given = 0 ;
   args_info->pseudoknot_free_given = 0 ;
   args_info->pk_only_given = 0 ;
@@ -308,6 +312,7 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "verbose",	0, NULL, 'v' },
         { "mark-candidates",	0, NULL, 'm' },
         { "input-structure",	required_argument, NULL, 'r' },
+        { "input-file",	required_argument, NULL, 'i' },
         { "dangles", required_argument, NULL, 'd'},
         { "pseudoknot-free",	0, NULL, 'p' },
         { "pk-only",	0, NULL, 'k' },
@@ -317,7 +322,7 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVvmr:P:d:pk", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVvmr:i:P:d:pk", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -363,6 +368,18 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
             goto failure;
 
             input_structure = optarg;
+        
+          break;
+
+         case 'i':	/* Specify input file.  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->input_file_given),
+              &(local_args_info.input_file_given), optarg, 0, 0, ARG_NO,0, 0,"input-file", 'i',additional_error))
+            goto failure;
+
+            input_file = optarg;
         
           break;
 
