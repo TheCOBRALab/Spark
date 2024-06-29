@@ -49,6 +49,7 @@ Read input file from cmdline; predict minimum free energy and optimum structure 
   -v, --verbose          Turn on verbose output
   -m, --mark-candidates  Represent candidate base pairs by curly brackets
   -r, --input-structure  Give a restricted structure as an input structure (required for pseudoknots)
+  -i, --input-file       Give a path to an input file containing the sequence (and input structure if known)
   -p, --pseudoknot-free  Turn off pseudoknot prediction
   -k, --pk-only          Only predict base pairs which cross the given input structure
   -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')
@@ -62,6 +63,7 @@ Read input file from cmdline; predict minimum free energy and optimum structure 
     ./build/src/Spark GGGGAAAACCCC
     ./build/src/Spark -d1 -r "((........))" GGGGAAAACCCC
     ./build/src/Spark -d1 -P "src/params/parameters_DP09_Vienna.txt" -r "((........))" GGGGAAAACCCC
+    ./build/src/Spark -i input.txt
 
 ```
 ./build/Spark -m -v -r "...............(((((((...)))))))..................." UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA
