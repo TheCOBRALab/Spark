@@ -1,6 +1,8 @@
 #include <iomanip>
 #include <vector>
 #include <cassert>
+#include <cstdint>
+
 
 #define maxSize 15 // 2^14 for sparse table
 
