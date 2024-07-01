@@ -2876,6 +2876,7 @@ int main(int argc,char **argv) {
 		
 	}
 	cand_pos_t n = seq.length();
+	std::transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
 	if(restricted == "") restricted = std::string('.',n);
 
 	if(restricted != "" && restricted.length() != (cand_pos_tu) n ){
