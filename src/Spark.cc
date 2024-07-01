@@ -2791,16 +2791,16 @@ cand_pos_t capacity_of_candidates(const std::vector<cand_list_t>& CL_) {
 	return c;
 }
 
-void seqtoRNA(std::string &sequence){
-	bool DNA = false;
-    for (char &c : sequence) {
-      	if (c == 'T' || c == 't') {
-			c = 'U';
-			DNA = true;
-		}
-    }
-	noGU = DNA;
-}
+// void seqtoRNA(std::string &sequence){
+// 	bool DNA = false;
+//     for (char &c : sequence) {
+//       	if (c == 'T' || c == 't') {
+// 			c = 'U';
+// 			DNA = true;
+// 		}
+//     }
+// 	noGU = DNA;
+// }
 
 void validate_structure(std::string structure){
 	int count = 0;
@@ -2891,7 +2891,12 @@ int main(int argc,char **argv) {
 	if(file!=""){
 		vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
 	}
+	else if (seq.find('T') != std::string::npos){
+		vrna_params_load_DNA_Mathews2004();
+	}
 
+	noGU = args_info.noGU_given;
+	// seqtoRNA(seq);
 	
 
 	bool verbose;
@@ -2900,9 +2905,6 @@ int main(int argc,char **argv) {
 	bool mark_candidates;
 	mark_candidates = args_info.mark_candidates_given;
 	sparse_tree tree(restricted,n);
-
-	noGU = args_info.noGU_given;
-	seqtoRNA(seq);
 
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
 

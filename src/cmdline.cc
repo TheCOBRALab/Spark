@@ -37,7 +37,7 @@ const char *args_info_help[] = {
   "  -k  --pk-only          Use the pk_only version of Spark"
   "  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.\n",
   "      --noGC             Turn off garbage collection and related overhead",
-  "      --noGU             Turn off G-U and U-G base pairing",
+  "      --noGU             Turn off G-U and U-G (and G-T and T-G) base pairing",
 
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
   
