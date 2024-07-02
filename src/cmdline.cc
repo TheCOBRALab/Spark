@@ -34,10 +34,11 @@ const char *args_info_help[] = {
   "  -i, --input-file       Give a path to an input file containing the sequence (and input structure if known)",
   "  -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')",
   "  -p, --pseudoknot-free  Turn off Psuedoknot prediction",
-  "  -k  --pk-only          Use the pk_only version of Spark"
+  "  -k  --pk-only          Only add base pairs which cross the constraint structure. The constraint structure is returned if there are no energetically favorable crossing base pairs"
   "  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.\n",
   "      --noGC             Turn off garbage collection and related overhead",
   "      --noGU             Turn off G-U and U-G (and G-T and T-G) base pairing",
+  "      --noConv           Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA",
 
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
   
@@ -66,6 +67,7 @@ static void init_args_info(struct args_info *args_info)
   args_info->paramFile_help = args_info_help[9] ;
   args_info->noGC_help = args_info_help[10] ;
   args_info->noGU_help = args_info_help[11] ;
+  args_info->noConv_help = args_info_help[12] ;
 
   
 }
@@ -122,6 +124,7 @@ static void clear_given (struct args_info *args_info)
   args_info->paramFile_given = 0 ;
   args_info->noGC_given = 0 ;
   args_info->noGU_given = 0 ;
+  args_info->noConv_given = 0 ;
 }
 
 static void clear_args (struct args_info *args_info)
@@ -319,6 +322,7 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "paramFile",	required_argument, NULL, 'P' },
         { "noGC",	0, NULL, 0 },
         { "noGU",	0, NULL, 0 },
+        { "noConv",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -443,6 +447,17 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
             if (update_arg( 0 , 
                  0 , &(args_info->noGU_given),
                 &(local_args_info.noGU_given), optarg, 0, 0, ARG_NO, 0, 0,"noGU", '-', additional_error))
+              goto failure;
+          
+          }
+
+          if (strcmp (long_options[option_index].name, "noConv") == 0)
+          {
+          
+          
+            if (update_arg( 0 , 
+                 0 , &(args_info->noConv_given),
+                &(local_args_info.noConv_given), optarg, 0, 0, ARG_NO, 0, 0,"noConv", '-', additional_error))
               goto failure;
           
           }

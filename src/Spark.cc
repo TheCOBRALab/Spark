@@ -2791,16 +2791,11 @@ cand_pos_t capacity_of_candidates(const std::vector<cand_list_t>& CL_) {
 	return c;
 }
 
-// void seqtoRNA(std::string &sequence){
-// 	bool DNA = false;
-//     for (char &c : sequence) {
-//       	if (c == 'T' || c == 't') {
-// 			c = 'U';
-// 			DNA = true;
-// 		}
-//     }
-// 	noGU = DNA;
-// }
+void seqtoRNA(std::string &sequence){
+    for (char &c : sequence) {
+      	if (c == 'T') c = 'U';
+    }
+}
 
 void validate_structure(std::string structure){
 	int count = 0;
@@ -2877,6 +2872,7 @@ int main(int argc,char **argv) {
 	}
 	cand_pos_t n = seq.length();
 	std::transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
+	if(!args_info.noConv_given) seqtoRNA(seq);
 	if(restricted == "") restricted = std::string('.',n);
 
 	if(restricted != "" && restricted.length() != (cand_pos_tu) n ){

@@ -33,6 +33,7 @@ struct args_info
   const char *paramFile_help; /**< @brief Use a separate parameter list */
   const char *noGC_help; /**< @brief Turn off garbage collection and related overhead help description.  */
   const char *noGU_help; /**< @brief Turn off garbage collection and related overhead help description.  */
+  const char *noConv_help; /**< @brief Turn off automated conversion to RNA help description.  */
 
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
@@ -47,6 +48,7 @@ struct args_info
   unsigned int paramFile_given ; /** <@brief whether a parameter file was given */
   unsigned int noGC_given ;	/**< @brief Whether noGC was given.  */
   unsigned int noGU_given ;	/**< @brief Whether noGC was given.  */
+  unsigned int noConv_given ;	/**< @brief Whether noConv was given.  */
 
 
   char **inputs ; /**< @brief unnamed options (options without names) */
