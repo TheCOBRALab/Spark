@@ -2853,9 +2853,8 @@ int main(int argc,char **argv) {
 		if(!args_info.input_file_given) std::getline(std::cin,seq);
 	}
 
-	std::string restricted;
+	std::string restricted = "";
 	if(args_info.input_structure_given) restricted = input_structure;
-
 
 	std::string fileI;
     args_info.input_file_given ? fileI = input_file : fileI = "";
@@ -2873,9 +2872,9 @@ int main(int argc,char **argv) {
 	cand_pos_t n = seq.length();
 	std::transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
 	if(!args_info.noConv_given) seqtoRNA(seq);
-	if(restricted == "") restricted = std::string('.',n);
+	if(restricted == "") restricted = std::string(n,'.');
 
-	if(restricted != "" && restricted.length() != (cand_pos_tu) n ){
+	if(restricted.length() != (cand_pos_tu) n ){
 		std::cout << "input sequence and structure are not the same size" << std::endl;
 		std::cout << seq << std::endl;
 		std::cout << restricted << std::endl;
