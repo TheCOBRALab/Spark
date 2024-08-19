@@ -2542,7 +2542,7 @@ energy_t fold(const std::string& seq, sparse_tree &sparse_tree, LocARNA::Matrix<
 
 				// Start of VP ---- Will have to change the bounds to 1 to n instead of 0 to n-1
 				bool weakly_closed_ij = sparse_tree.weakly_closed(i,j);
-				if ( weakly_closed_ij || sparse_tree.tree[i].pair > -1 || sparse_tree.tree[j].pair > -1 || ptype_closing == 0)	{
+				if ( weakly_closed_ij || sparse_tree.tree[i].pair >= -1 || sparse_tree.tree[j].pair >= -1 || ptype_closing == 0)	{
 				
 					VP(i_mod,j) = INF;
 					
