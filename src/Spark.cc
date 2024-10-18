@@ -2981,7 +2981,9 @@ int main(int argc,char **argv) {
 
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
 	// std::cout << " ("<<smfe.str()<<")"<<std::endl;
-	
+	int max_candidates = capacity_of_candidates(sparsemfefold.CL_) + capacity_of_candidates(sparsemfefold.CLWMB_) + capacity_of_candidates(sparsemfefold.CLVP_);
+	int max_arrows = maxT(sparsemfefold.ta_) + maxT(sparsemfefold.taVP_);
+	// std::cout << max_candidates << "\t" << max_arrows << "\t" << (n*n) << std::endl;
 	if (verbose) {	
 
 	std::cout <<std::endl;
@@ -3009,14 +3011,6 @@ int main(int argc,char **argv) {
 	std::cout << "VP Can cap:\t"<<capacity_of_candidates(sparsemfefold.CLVP_)<<std::endl;
 	std::cout << "BE Can num:\t"<<num_of_candidates(sparsemfefold.CLBE_)<<std::endl;
 	std::cout << "BE Can cap:\t"<<capacity_of_candidates(sparsemfefold.CLBE_)<<std::endl;
-	}
-
-	for(int j = 1; j<=n;j++){
-		printf("%d: ",j);
-		for ( auto it=sparsemfefold.CLVP_[j].begin();sparsemfefold.CLVP_[j].end() != it;++it ) {
-			printf("(%d,%d) : ",it->first,it->second);
-		}
-		printf("\n");
 	}
 
 	return 0;
