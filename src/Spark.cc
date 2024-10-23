@@ -3035,9 +3035,6 @@ int main(int argc,char **argv) {
 
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
 	// std::cout < " ("<<smfe.str()<<")"<<std::endl;
-	// int max_candidates = capacity_of_candidates(sparsemfefold.CL_) + capacity_of_candidates(sparsemfefold.CLWMB_) + capacity_of_candidates(sparsemfefold.CLVP_);
-	// int max_arrows = maxT(sparsemfefold.ta_) + maxT(sparsemfefold.taVP_);
-	// std::cout << n << "\t" << max_candidates << "\t" << max_arrows << "\t" << (n*n) << std::endl;
 	if (verbose) {	
 
 	std::cout <<std::endl;

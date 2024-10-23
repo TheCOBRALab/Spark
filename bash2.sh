@@ -11,7 +11,9 @@ then
 # echo $line1 > out1.txt
 # echo $line2 >> out1.txt
 # gtime -o out.txt -f "%e\t%M" ./build/Spark -d1 -r $line2  $line1;
-./build/Spark -d1 -r $line2  $line1 > out.txt;
+# ./build/Spark -d1 -r $line2  $line1 > out.txt;
+/Users/mateo2/Documents/Code/SparseRNAFolD/build/SparseRNAFolD -d1 -r $line2  $line1 > out.txt;
+
 # gtime -o out.txt -f "%e\t%M" /Users/mateo2/Documents/Code/HFold/HFold -s $line1 -r $line2
 
 # gtime -o out2.txt -f "%e\t%M" /Users/mateo2/Documents/Code/includes/Vienna/bin/RNAfold -d1 --constraint<out1.txt --enforceConstraint out1.txt
@@ -22,7 +24,7 @@ then
 # cat "/Users/mateo2/Documents/Code/Spark/out.txt" >> "/Users/mateo2/Documents/Code/output/proof/HFold/$input.txt"
 
 # cat "/Users/mateo2/Documents/Code/Spark/out.txt" >> "/Users/mateo2/Documents/Code/output/time/Spark/$input.txt"
-cat "/Users/mateo2/Documents/Code/Spark/out.txt" >> "/Users/mateo2/Documents/Code/Spark-RawData/TimeAndMemory/candidates/$input.txt"
+cat "/Users/mateo2/Documents/Code/Spark/out.txt" >> "/Users/mateo2/Documents/Code/Spark-RawData/TimeAndMemory/candidates/s$input.txt"
 
 # cat "/Users/mateo2/Documents/Code/Spark/out2.txt" >> "/Users/mateo2/Documents/Code/output/time/RNAFold/$input.txt"
 
