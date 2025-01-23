@@ -559,6 +559,25 @@ energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,
     return e;
 }
 
+/**
+ * In cases where the band border is not found, if specific cases are met, the value is Inf(n) not -1.
+ * Mateo Jan 2025: Added to Fix WMBP problem
+*/
+int compute_exterior_cases(cand_pos_t l, cand_pos_t j, const sparse_tree &tree){
+
+	// Case 1 -> l is not covered
+	bool case1 = tree.tree[l].parent->index <= 0;
+	// Case 2 -> l is paired
+	bool case2 = tree.tree[l].pair > 0;
+	// Case 3 -> l is part of a closed subregion
+	bool case3 = 0;
+	// Case 4 -> l.bp(l) i.e. l.j does not cross anything -- could I compare parents instead?
+	bool case4 = j<tree.Bp(l,j);
+	// By bitshifting each one, we have a more granular idea of what cases fail and is faster than branching
+	return (case1 <<3) | (case2 << 2) | (case3 << 1) | case4;
+}
+
+
 
 /**
 * @brief Recompute row of WM. This is used in the traceback when we haved decided the current i.j pair closes a multiloop,
@@ -655,7 +674,7 @@ const std::vector<energy_t> recompute_WM2(const std::vector<energy_t>& WM,const 
 * @param i Current i
 * @param max_j Current j
 */
-const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &CL,const std::vector< cand_list_t > &CLVP,const std::vector< cand_list_t > &CLWMB,const std::vector< cand_list_t > &CLBE, std::vector<energy_t> WI_Bbp,std::vector<energy_t> WMBA, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const sparse_tree &tree) {
+const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &CL,const std::vector< cand_list_t > &CLVP,const std::vector< cand_list_t > &CLWMB,const std::vector< cand_list_t > &CLBE, const std::vector<energy_t> &WI_Bbp,std::vector<energy_t> &WMBA, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const sparse_tree &tree) {
 	assert(i>=1);
 	assert(max_j<=n);
 	std::vector<energy_t> temp;
@@ -687,7 +706,8 @@ const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &C
 			cand_pos_t bp_ik = tree.bp(i,k);
 			cand_pos_t Bp_kj = tree.Bp(k,j);
 			cand_pos_t b_ij = tree.b(i,j);
-			if (b_ij > 0 && k < b_ij){
+			int ext_case = compute_exterior_cases(k,j,tree);
+			if ((b_ij > 0 && k < b_ij) || ext_case == 0){
 				if (bp_ik >= 0 && k>bp_ik && Bp_kj > 0 && k<Bp_kj){
 					energy_t BE_energy = INF;
 					cand_pos_t B_kj = tree.B(k,j);
@@ -700,7 +720,7 @@ const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &C
 							break;
 						}
 					}
-					wmbp = std::min(wmbp, BE_energy + temp[k-1]  + it->second + 2*PB_penalty);
+					wmbp = std::min(wmbp, BE_energy + WMBA[k-1]  + it->second + 2*PB_penalty);
 				}
 			}
 		}
@@ -724,7 +744,7 @@ const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &C
 			}
 		}
 		wmbp = std::min(wmbp, vp_ij + PB_penalty);
-		if(tree.tree[j].pair<0) wmba = std::min(wmba, temp[j-1] + PUP_penalty);
+		if(tree.tree[j].pair<0) wmba = std::min(wmba, WMBA[j-1] + PUP_penalty);
 		wmba = std::min(wmba,wmbp);
 		WMBA[j] = wmba;
 		temp[j] = wmbp;
@@ -1363,7 +1383,7 @@ void trace_WMB(const std::string& seq, const std::vector< cand_list_td1 >& CL, c
 		// }
 	}
 	}
-	trace_WMBA(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WMBP,WMBA,n,mark_candidates,i,j,WMBP[j],tree);
+	trace_WMBP(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WMBP,WMBA,n,mark_candidates,i,j,WMBP[j],tree);
 	return;
 	
 
@@ -1741,7 +1761,8 @@ void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, 
 
 		cand_pos_t bp_ik = tree.bp(i,k);
 		cand_pos_t Bp_kj = tree.Bp(k,j);
-		if (b_ij > 0 && k < b_ij){
+		int ext_case = compute_exterior_cases(k,j,tree);
+		if ((b_ij > 0 && k < b_ij) || ext_case == 0){
 			if (bp_ik >= 0 && k>bp_ik && Bp_kj > 0 && k<Bp_kj){
 				energy_t BE_energy = INF;
 				cand_pos_t B_kj = tree.B(k,j);
@@ -1754,10 +1775,9 @@ void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, 
 						break;
 					}
 				}
-
 				if(e == WMBA[k-1] + it->second + 2*PB_penalty + BE_energy){
 					trace_BE(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,n,mark_candidates,b_kj,bp_kj,BE_energy,tree);
-					trace_WMBP(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WMBP,WMBA,n,mark_candidates,i,k-1,WMBP[k-1],tree);
+					trace_WMBA(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WMBP,WMBA,n,mark_candidates,i,k-1,WMBP[k-1],tree);
 					trace_VP(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,n,mark_candidates,k,j,it->second,tree);
 					return;
 				}
@@ -1944,7 +1964,7 @@ void register_candidate(std::vector<cand_list_t> &CL, cand_pos_t const& i, cand_
 	CL[j].emplace_back(cand_entry_t(i,e));
 }
 
-energy_t compute_WVe(cand_pos_t i, cand_pos_t j, std::vector<energy_t> &WVe, std::vector< cand_list_t > &CLVP,sparse_tree &tree){
+energy_t compute_WVe(cand_pos_t i, cand_pos_t j, std::vector<energy_t> &WVe, std::vector< cand_list_t > &CLVP, const sparse_tree &tree){
 	
 	energy_t wve = INF;
 	cand_pos_t bound = std::min((cand_pos_tu) tree.Bp(i,j),(cand_pos_tu) tree.b(i,j));
@@ -1969,7 +1989,7 @@ energy_t compute_WVe(cand_pos_t i, cand_pos_t j, std::vector<energy_t> &WVe, std
 * @param CLVP VP candidate list
 * @param CLWMB WMB candidate list
 */
-energy_t compute_WV(cand_pos_t i, cand_pos_t j, cand_pos_t bound_left, cand_pos_t bound_right, std::vector<energy_t> &WV,std::vector<energy_t> &WVe, std::vector<energy_t> &dwip1, std::vector< cand_list_td1 > &CL, std::vector< cand_list_t> &CLWMB, std::vector< cand_list_t > &CLVP,sparse_tree &tree){
+energy_t compute_WV(cand_pos_t i, cand_pos_t j, cand_pos_t bound_left, cand_pos_t bound_right, std::vector<energy_t> &WV,std::vector<energy_t> &WVe, std::vector<energy_t> &dwip1, std::vector< cand_list_td1 > &CL, std::vector< cand_list_t> &CLWMB, std::vector< cand_list_t > &CLVP, const sparse_tree &tree){
 	energy_t m1 = INF, m2 = INF, m3 = INF,m5 = INF, m6 = INF,wv = INF;
 	
 	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>bound_right ; ++it ) {
@@ -2016,7 +2036,7 @@ energy_t compute_WV(cand_pos_t i, cand_pos_t j, cand_pos_t bound_left, cand_pos_
 * @param i row index
 * @param j column index
 */
-energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, std::vector< cand_list_t> &CLBE, sparse_tree &sparse_tree,short *S,short *S1,paramT* params, const std::vector<energy_t> dwip1, const std::vector< energy_t >& WIP_Bp){
+energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, std::vector< cand_list_t> &CLBE, const sparse_tree &sparse_tree,short *S,short *S1,paramT* params, const std::vector<energy_t> dwip1, const std::vector< energy_t >& WIP_Bp){
 // int compute_BE(int i, int j, int ip, int jp, int lp, int l, auto &S, auto &S1, auto &WIP_Bbp){
     // We are checking for the closest pair that we have already calculated to i/ip from j/jp 
     // If there is nothing, then i is the closest encompassing pair to jp
@@ -2084,7 +2104,7 @@ energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, st
 * @param i row index
 * @param j column index
 */
-energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std::vector<cand_list_t> &CLVP, std::vector<cand_list_t> &CLBE, LocARNA::Matrix<energy_t> &VP, std::vector<energy_t> &WMBP, std::vector<energy_t> &WI_Bbp, std::vector<energy_t> &WMBA, energy_t &wmb_case3){
+energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, const sparse_tree &sparse_tree, std::vector<cand_list_t> &CLVP, std::vector<cand_list_t> &CLBE, LocARNA::Matrix<energy_t> &VP, std::vector<energy_t> &WMBP, std::vector<energy_t> &WI_Bbp, std::vector<energy_t> &WMBA, energy_t &wmb_case3){
 	energy_t m1 = INF, m2 = INF, m3 = INF, wmbp = INF;
 	// 1) WMBP(i,j) = BE(bpg(Bp(l,j)),Bp(l,j),bpg(B(l,j)),B(l,j)) + WMBP(i,l) + VP(l+1,j)
 	if (sparse_tree.tree[j].pair < 0){
@@ -2094,7 +2114,9 @@ energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 			cand_pos_t l = it->first;
 			cand_pos_t bp_il = sparse_tree.bp(i,l);
 			cand_pos_t Bp_lj = sparse_tree.Bp(l,j);
-			if (b_ij > 0 && l < b_ij){
+			// Mateo Jan 2025 Added exterior cases to consider when looking at band borders. Solved case of [.(.].[.).]
+			int ext_case = compute_exterior_cases(l,j,sparse_tree);
+			if ((b_ij > 0 && l < b_ij) || ext_case == 0){
 				if (bp_il >= 0 && l>bp_il && Bp_lj > 0 && l<Bp_lj){//if(sparse_tree.b(i,j)>=0 && l <sparse_tree.b(i,j)){//
 					cand_pos_t B_lj = sparse_tree.B(l,j);
 					if (i <= sparse_tree.tree[l].parent->index && sparse_tree.tree[l].parent->index < j && l+3 <=j){
@@ -2160,7 +2182,7 @@ energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 }
 
 
-energy_t compute_WMBA(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std::vector<energy_t> &WMBP, std::vector<energy_t> &WMBA,std::vector<cand_list_td1> &CL, std::vector<cand_list_t> &CLWMB){
+energy_t compute_WMBA(cand_pos_t i, cand_pos_t j, const sparse_tree &sparse_tree, std::vector<energy_t> &WMBP, std::vector<energy_t> &WMBA,std::vector<cand_list_td1> &CL, std::vector<cand_list_t> &CLWMB){
 
 	// WMBA criteria
 	energy_t wmba = INF;
@@ -2180,14 +2202,12 @@ energy_t compute_WMBA(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 
 			}
 		}
-		if(sparse_tree.tree[j].pair < 0) WMBA[j] = std::min(wmba,WMBA[j-1] + PUP_penalty);
+		if(sparse_tree.tree[j].pair < 0) wmba = std::min(wmba,WMBA[j-1] + PUP_penalty);
 	}
 	else{
 		wmba = INF;
 	}
-	
 	wmba = std::min(wmba,WMBP[j]);
-
 	return wmba;
 
 }
@@ -2200,7 +2220,7 @@ energy_t compute_WMBA(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 * @param i row index
 * @param j column index
 */
-energy_t compute_WMB(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std::vector<cand_list_t> &CLBE, std::vector<energy_t> &WMBP, std::vector<energy_t> &WMBA, std::vector<energy_t> &WI_Bp, energy_t &wmb_case1){
+energy_t compute_WMB(cand_pos_t i, cand_pos_t j, const sparse_tree &sparse_tree, std::vector<cand_list_t> &CLBE, std::vector<energy_t> &WMBP, std::vector<energy_t> &WMBA, std::vector<energy_t> &WI_Bp, energy_t &wmb_case1){
 	energy_t m1 = INF, m2 = INF, wmb = INF;
 
 	// 2)
@@ -2248,7 +2268,7 @@ energy_t compute_WMB(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std::
 * @param i row index
 * @param j column index
 */
-energy_t compute_VP_internal(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_ij, cand_pos_t Bp_ij, cand_pos_t B_ij,cand_pos_t &best_k,cand_pos_t &best_l, energy_t &best_e, sparse_tree& sparse_tree, short* S, short* S1,LocARNA::Matrix<energy_t> &VP, paramT* params){
+energy_t compute_VP_internal(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_ij, cand_pos_t Bp_ij, cand_pos_t B_ij,cand_pos_t &best_k,cand_pos_t &best_l, energy_t &best_e, const sparse_tree& sparse_tree, short* S, short* S1,LocARNA::Matrix<energy_t> &VP, paramT* params){
 	
 	energy_t m5 = INF;
 
@@ -2294,7 +2314,7 @@ energy_t compute_VP_internal(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_p
 * @param i row index
 * @param j column index
 */
-energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_ij, cand_pos_t Bp_ij, cand_pos_t B_ij, sparse_tree& sparse_tree, std::vector<energy_t> &dwi1, std::vector<energy_t> &dwvp, std::vector<energy_t> &WI_Bbp, short* S, short* S1,LocARNA::Matrix<energy_t> &VP, std::vector<cand_list_t> &CLVP, TraceArrows &taVP, const SparseMFEFold::Cand_comp& cand_comp , paramT* params){
+energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_ij, cand_pos_t Bp_ij, cand_pos_t B_ij, const sparse_tree& sparse_tree, std::vector<energy_t> &dwi1, std::vector<energy_t> &dwvp, std::vector<energy_t> &WI_Bbp, short* S, short* S1,LocARNA::Matrix<energy_t> &VP, std::vector<cand_list_t> &CLVP, TraceArrows &taVP, const SparseMFEFold::Cand_comp& cand_comp , paramT* params){
 	energy_t m1 = INF, m2 = INF, m3 = INF, m4= INF, m5 = INF, m6 = INF, vp = INF;
 	const pair_type ptype_closing = pair[S[i]][S[j]];
 	if(sparse_tree.tree[i].parent->index > 0 && sparse_tree.tree[j].parent->index < sparse_tree.tree[i].parent->index && Bp_ij >= 0 && B_ij >= 0 && bp_ij < 0){
@@ -2366,7 +2386,7 @@ energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_i
 * @param i row index
 * @param j column index
 */
-energy_t compute_internal(cand_pos_t i, cand_pos_t j,cand_pos_t &best_k, cand_pos_t &best_l, energy_t &best_e,sparse_tree &sparse_tree, short* S, short* S1,LocARNA::Matrix<energy_t> &V, paramT *params){
+energy_t compute_internal(cand_pos_t i, cand_pos_t j,cand_pos_t &best_k, cand_pos_t &best_l, energy_t &best_e,const sparse_tree &sparse_tree, short* S, short* S1,LocARNA::Matrix<energy_t> &V, paramT *params){
 	energy_t v_iloop = INF;
 	cand_pos_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
 	const pair_type ptype_closing = pair[S[i]][S[j]];
@@ -2395,7 +2415,7 @@ energy_t compute_internal(cand_pos_t i, cand_pos_t j,cand_pos_t &best_k, cand_po
 /**
  * @brief Determines the MFE energy for a given sequence
 */
-energy_t fold(const std::string& seq, sparse_tree &sparse_tree, LocARNA::Matrix<energy_t> &V, const SparseMFEFold::Cand_comp& cand_comp, std::vector<cand_list_td1> &CL, std::vector<cand_list_t> &CLWMB,std::vector<cand_list_t> &CLVP, std::vector<cand_list_t> &CLBE, short* S, short* S1, paramT* params, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, std::vector<energy_t> &dmli1, std::vector<energy_t> &dmli2, LocARNA::Matrix<energy_t> &VP, std::vector<energy_t> &WVe, std::vector<energy_t> &WV, std::vector<energy_t> &dwvp, std::vector<energy_t> &WMB, std::vector<energy_t> &dwmbi,std::vector<energy_t> &WMBP,std::vector<energy_t> &WMBA,std::vector<energy_t> &WI,std::vector<energy_t> &dwi1,std::vector<energy_t> &WIP, std::vector<energy_t> &dwip1, std::vector<energy_t> &WI_Bbp, std::vector<energy_t> &WIP_Bbp, std::vector< energy_t >&WIP_Bp, std::vector<energy_t> &WI_Bp , const cand_pos_t n, const bool garbage_collect) {
+energy_t fold(const std::string& seq, const sparse_tree &sparse_tree, LocARNA::Matrix<energy_t> &V, const SparseMFEFold::Cand_comp& cand_comp, std::vector<cand_list_td1> &CL, std::vector<cand_list_t> &CLWMB,std::vector<cand_list_t> &CLVP, std::vector<cand_list_t> &CLBE, short* S, short* S1, paramT* params, TraceArrows &ta,TraceArrows &taVP, std::vector<energy_t> &W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, std::vector<energy_t> &dmli1, std::vector<energy_t> &dmli2, LocARNA::Matrix<energy_t> &VP, std::vector<energy_t> &WVe, std::vector<energy_t> &WV, std::vector<energy_t> &dwvp, std::vector<energy_t> &WMB, std::vector<energy_t> &dwmbi,std::vector<energy_t> &WMBP,std::vector<energy_t> &WMBA,std::vector<energy_t> &WI,std::vector<energy_t> &dwi1,std::vector<energy_t> &WIP, std::vector<energy_t> &dwip1, std::vector<energy_t> &WI_Bbp, std::vector<energy_t> &WIP_Bbp, std::vector< energy_t >&WIP_Bp, std::vector<energy_t> &WI_Bp , const cand_pos_t n, const bool garbage_collect) {
 	Dangle d = 3;
 	// int BE_avoided = 0;
     if(params->model_details.dangles == 0 || params->model_details.dangles == 1) d = 0;
