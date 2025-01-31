@@ -1758,10 +1758,10 @@ void trace_WMBP(const std::string& seq, const std::vector< cand_list_td1 >& CL, 
 		cand_pos_t k = it->first;
 		if(k==i) VP_ij = it->second; //second?
 
-		cand_pos_t bp_ik = tree.bp(i,k);
-		cand_pos_t Bp_kj = tree.Bp(k,j);
 		int ext_case = compute_exterior_cases(k,j,tree);
 		if ((b_ij > 0 && k < b_ij) || ext_case == 0){
+			cand_pos_t bp_ik = tree.bp(i,k);
+			cand_pos_t Bp_kj = tree.Bp(k,j);
 			if (bp_ik >= 0 && k>bp_ik && Bp_kj > 0 && k<Bp_kj){
 				energy_t BE_energy = INF;
 				cand_pos_t B_kj = tree.B(k,j);
@@ -2109,11 +2109,11 @@ energy_t compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &sparse_tree, std:
 		cand_pos_t b_ij = sparse_tree.b(i,j);
 		for ( auto it = CLVP[j].begin();CLVP[j].end()!=it; ++it ) {
 			cand_pos_t l = it->first;
-			cand_pos_t bp_il = sparse_tree.bp(i,l);
-			cand_pos_t Bp_lj = sparse_tree.Bp(l,j);
 			// Mateo Jan 2025 Added exterior cases to consider when looking at band borders. Solved case of [.(.].[.).]
 			int ext_case = compute_exterior_cases(l,j,sparse_tree);
 			if ((b_ij > 0 && l < b_ij) || ext_case == 0){
+				cand_pos_t bp_il = sparse_tree.bp(i,l);
+				cand_pos_t Bp_lj = sparse_tree.Bp(l,j);
 				if (bp_il >= 0 && l>bp_il && Bp_lj > 0 && l<Bp_lj){//if(sparse_tree.b(i,j)>=0 && l <sparse_tree.b(i,j)){//
 					cand_pos_t B_lj = sparse_tree.B(l,j);
 					if (i <= sparse_tree.tree[l].parent->index && sparse_tree.tree[l].parent->index < j && l+3 <=j){
