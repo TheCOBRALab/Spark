@@ -5,7 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \ -O3")
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+# set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \ -w \ -O3") # -flto link time optimizations
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(spark_SOURCE
     src/cmdline.cc
@@ -14,10 +20,10 @@ set(spark_SOURCE
     src/trace_arrow.cc 
 )
 
-set(test_SOURCE
-test/Case3.cpp 
-test/Test.cpp
-)
+# set(test_SOURCE
+# test/Case3.cpp 
+# test/Test.cpp
+# )
 
 set(constraints_SOURCE
     src/ViennaRNA/constraints/constraints.c
@@ -91,11 +97,11 @@ target_include_directories(RNA PRIVATE .)
 
 add_executable(Spark ${spark_SOURCE})
 
-add_executable(tests ${test_SOURCE})
+# add_executable(tests ${test_SOURCE})
 
 target_link_libraries(Spark PRIVATE RNA)
 
-target_link_libraries(tests PRIVATE RNA)
+# target_link_libraries(tests PRIVATE RNA)
 
 
 include_directories(src)

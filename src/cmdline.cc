@@ -347,8 +347,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->verbose_given),
-              &(local_args_info.verbose_given), optarg, 0, 0, ARG_NO,0, 0,"verbose", 'v',additional_error))
-            goto failure;
+              &(local_args_info.verbose_given), optarg, 0, 0, ARG_NO,0, 0,"verbose", 'v',additional_error)){
+            goto failure;}
         
           break;
         case 'm':	/* Represent candidate base pairs by square brackets.  */
@@ -358,8 +358,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
                0 , &(args_info->mark_candidates_given),
               &(local_args_info.mark_candidates_given), optarg, 0, 0, ARG_NO, 0, 0,
               "mark-candidates", 'm',
-              additional_error))
-            goto failure;
+              additional_error)){
+            goto failure;}
         
           break;
         
@@ -368,8 +368,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->input_structure_given),
-              &(local_args_info.input_structure_given), optarg, 0, 0, ARG_NO,0, 0,"input-structure", 'r',additional_error))
-            goto failure;
+              &(local_args_info.input_structure_given), optarg, 0, 0, ARG_NO,0, 0,"input-structure", 'r',additional_error)){
+            goto failure;}
 
             input_structure = optarg;
         
@@ -380,8 +380,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->input_file_given),
-              &(local_args_info.input_file_given), optarg, 0, 0, ARG_NO,0, 0,"input-file", 'i',additional_error))
-            goto failure;
+              &(local_args_info.input_file_given), optarg, 0, 0, ARG_NO,0, 0,"input-file", 'i',additional_error)){
+            goto failure;}
 
             input_file = optarg;
         
@@ -392,8 +392,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->dangles_given),
-              &(local_args_info.dangles_given), optarg, 0, 0, ARG_NO,0, 0,"dangles", 'd',additional_error))
-            goto failure;
+              &(local_args_info.dangles_given), optarg, 0, 0, ARG_NO,0, 0,"dangles", 'd',additional_error)){
+            goto failure;}
 
             dangle_model = strtol(optarg,NULL,10);
         
@@ -403,8 +403,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->pseudoknot_free_given),
-              &(local_args_info.pseudoknot_free_given), optarg, 0, 0, ARG_NO,0, 0,"pseudoknot-free", 'p',additional_error))
-            goto failure;
+              &(local_args_info.pseudoknot_free_given), optarg, 0, 0, ARG_NO,0, 0,"pseudoknot-free", 'p',additional_error)){
+            goto failure;}
         
           break;
           case 'k':	/* Predict a pseudoknot.  */
@@ -412,8 +412,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->pk_only_given),
-              &(local_args_info.pk_only_given), optarg, 0, 0, ARG_NO,0, 0,"pk-only", 'k',additional_error))
-            goto failure;
+              &(local_args_info.pk_only_given), optarg, 0, 0, ARG_NO,0, 0,"pk-only", 'k',additional_error)){
+            goto failure;}
         
           break;
 
@@ -422,8 +422,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->paramFile_given),
-              &(local_args_info.paramFile_given), optarg, 0, 0, ARG_NO,0, 0,"paramFile", 'P',additional_error))
-            goto failure;
+              &(local_args_info.paramFile_given), optarg, 0, 0, ARG_NO,0, 0,"paramFile", 'P',additional_error)){
+            goto failure;}
 
             parameter_file = optarg;
           break;
@@ -436,8 +436,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
           
             if (update_arg( 0 , 
                  0 , &(args_info->noGC_given),
-                &(local_args_info.noGC_given), optarg, 0, 0, ARG_NO, 0, 0,"noGC", '-', additional_error))
-              goto failure;
+                &(local_args_info.noGC_given), optarg, 0, 0, ARG_NO, 0, 0,"noGC", '-', additional_error)){
+              goto failure;}
           
           }
           if (strcmp (long_options[option_index].name, "noGU") == 0)
@@ -446,8 +446,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
           
             if (update_arg( 0 , 
                  0 , &(args_info->noGU_given),
-                &(local_args_info.noGU_given), optarg, 0, 0, ARG_NO, 0, 0,"noGU", '-', additional_error))
-              goto failure;
+                &(local_args_info.noGU_given), optarg, 0, 0, ARG_NO, 0, 0,"noGU", '-', additional_error)){
+              goto failure;}
           
           }
 
@@ -457,8 +457,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
           
             if (update_arg( 0 , 
                  0 , &(args_info->noConv_given),
-                &(local_args_info.noConv_given), optarg, 0, 0, ARG_NO, 0, 0,"noConv", '-', additional_error))
-              goto failure;
+                &(local_args_info.noConv_given), optarg, 0, 0, ARG_NO, 0, 0,"noConv", '-', additional_error)){
+              goto failure;}
           
           }
           
