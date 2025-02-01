@@ -2516,7 +2516,7 @@ energy_t fold(const std::string& seq, sparse_tree &sparse_tree, LocARNA::Matrix<
 				// info of best interior loop decomposition (if better than hairpin)
 				cand_pos_t best_l=0;
 				cand_pos_t best_k=0;
-				energy_t best_e;
+				energy_t best_e = INF;
 
 				energy_t v_iloop=INF;
 

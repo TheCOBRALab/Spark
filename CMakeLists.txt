@@ -11,7 +11,7 @@ endif()
 # set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \ -w \ -O3") # -flto link time optimizations
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -flto")
 
 set(spark_SOURCE
     src/cmdline.cc
