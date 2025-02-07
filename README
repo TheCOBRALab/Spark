@@ -66,7 +66,7 @@ Remarks:
     assume you are in the Spark directory
     ./build/src/Spark GGGGAAAACCCC
     ./build/src/Spark -d1 -r "((........))" GGGGAAAACCCC
-    ./build/src/Spark -d1 -P "src/params/parameters_DP09_Vienna.txt" -r "((........))" GGGGAAAACCCC
+    ./build/src/Spark -d1 -P "params/rna_Turner04.par" -r "((........))" GGGGAAAACCCC
     ./build/src/Spark -i input.txt
 
 ```
