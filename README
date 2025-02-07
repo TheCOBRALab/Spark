@@ -59,6 +59,9 @@ Read input file from cmdline; predict minimum free energy and optimum structure 
       --noConv           Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA
 ```
 
+Remarks:
+    The default parameter file is DP09. This can be changed via -P and specifying the parameter file you would like
+
 #### Example:
     assume you are in the Spark directory
     ./build/src/Spark GGGGAAAACCCC
