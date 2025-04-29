@@ -34,6 +34,8 @@ static bool pseudoknot = false;
 
 static bool pk_only = false;
 
+#define INFover2 5000000 /* (INT_MAX/20) */
+
 struct quatret
 {
     cand_pos_t first; 
@@ -2727,15 +2729,18 @@ energy_t fold(const std::string& seq, sparse_tree &sparse_tree, LocARNA::Matrix<
             energy_t vp_min2 = INF;
             for ( auto it=CLVP[j].begin();CLVP[j].end() != it;++it ) {
                 const cand_pos_t k = it->first;
+				bool can_pair = sparse_tree.up[k-1] >= (k-i);
                 energy_t WIk = WI[k-1];
                 energy_t WIPk = WIP[k-1];
-
-                    vp_min1 = std::min(vp_min1,WIk + it->second);
-                    vp_min2 = std::min(vp_min2,WIPk + it->second);
+				vp_min1 = std::min(vp_min1,WIk + it->second);
+				vp_min2 = std::min(vp_min2,WIPk + it->second);
+				if(can_pair) vp_min2 = std::min(vp_min2,static_cast<energy_t>((k-i)*cp_penalty) +it->second);
             }
-			if((VP(i_mod,j) < INF/2) && (VP(i_mod,j) < vp_min1 || VP(i_mod,j) < vp_min2)){
-				register_candidate(CLVP,i,j,VP(i_mod,j));
-				inc_source_ref_count(taVP,i,j);
+			if((w_v < INFover2) && (wm_v < INFover2)){
+				if((VP(i_mod,j) < vp_min1 || VP(i_mod,j) < vp_min2)){
+					register_candidate(CLVP,i,j,VP(i_mod,j));
+					inc_source_ref_count(taVP,i,j);
+				}
 			}
         
 
@@ -2756,7 +2761,7 @@ energy_t fold(const std::string& seq, sparse_tree &sparse_tree, LocARNA::Matrix<
 				// always keep arrows starting from candidates
 				inc_source_ref_count(ta,i,j);
 			}	
-			if ((WMB[j] < INF/2) && (w_wmb < w_split || wm_wmb < wm_split || wi_wmb < wi_split || wip_wmb < wip_split)) {
+			if ((WMB[j] < INFover2) && (w_wmb < w_split || wm_wmb < wm_split || wi_wmb < wi_split || wip_wmb < wip_split)) {
 		
 				register_candidate(CLWMB, i, j, WMB[j]);
 
@@ -2966,7 +2971,7 @@ int main(int argc,char **argv) {
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
 
 	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangle_model;
-	pseudoknot = ~args_info.pseudoknot_free_given;
+	pseudoknot = !args_info.pseudoknot_free_given;
 	pk_only = args_info.pk_only_given;  
 	
 	cmdline_parser_free(&args_info);

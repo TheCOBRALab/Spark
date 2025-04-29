@@ -20,11 +20,6 @@ set(spark_SOURCE
     src/trace_arrow.cc 
 )
 
-# set(test_SOURCE
-# test/Case3.cpp 
-# test/Test.cpp
-# )
-
 set(constraints_SOURCE
     src/ViennaRNA/constraints/constraints.c
     src/ViennaRNA/constraints/hard.c

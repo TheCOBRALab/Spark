@@ -23,7 +23,7 @@ const char *args_info_usage = "Usage: Spark"  "[options] [sequence]";
 
 const char *args_info_versiontext = "";
 
-const char *args_info_description = "Read RNA sequence from stdin or cmdline; predict minimum\nfree energy and optimum structure using the time- and space-efficient\nMFE RNA folding algorithm of Will and Jabbari, 2015. The results are\nequivalent to RNAfold -d0, but the computation takes less time (for\nlong sequences) and much less space.";
+const char *args_info_description = "Read RNA sequence from stdin or cmdline; predict minimum\nfree energy and optimum structure using the time- and space-efficient\nMFE RNA folding algorithm. The results are equivalent\nto HFold, but the computation takes less time and much less space.";
 
 const char *args_info_help[] = {
   "  -h, --help             Print help and exit",
@@ -34,8 +34,8 @@ const char *args_info_help[] = {
   "  -i, --input-file       Give a path to an input file containing the sequence (and input structure if known)",
   "  -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')",
   "  -p, --pseudoknot-free  Turn off Psuedoknot prediction",
-  "  -k  --pk-only          Only add base pairs which cross the constraint structure. The constraint structure is returned if there are no energetically favorable crossing base pairs"
-  "  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.\n",
+  "  -k  --pk-only          Only add base pairs which cross the constraint structure. The constraint structure is returned if there are no energetically favorable crossing base pairs",
+  "  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.",
   "      --noGC             Turn off garbage collection and related overhead",
   "      --noGU             Turn off G-U and U-G (and G-T and T-G) base pairing",
   "      --noConv           Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA",
