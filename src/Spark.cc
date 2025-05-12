@@ -2736,7 +2736,7 @@ energy_t fold(const std::string& seq, sparse_tree &sparse_tree, LocARNA::Matrix<
 				vp_min2 = std::min(vp_min2,WIPk + it->second);
 				if(can_pair) vp_min2 = std::min(vp_min2,static_cast<energy_t>((k-i)*cp_penalty) +it->second);
             }
-			if((w_v < INFover2) && (wm_v < INFover2)){
+			if((VP(i_mod,j) < INFover2)){
 				if((VP(i_mod,j) < vp_min1 || VP(i_mod,j) < vp_min2)){
 					register_candidate(CLVP,i,j,VP(i_mod,j));
 					inc_source_ref_count(taVP,i,j);
