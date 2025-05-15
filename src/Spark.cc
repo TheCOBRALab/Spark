@@ -701,7 +701,7 @@ const std::vector<energy_t> recompute_WMBP(const std::vector< cand_list_td1 > &C
 			
 			wmba = std::min(wmba, temp[k-1]  + wmb_kj + PPS_penalty + PSM_penalty);
 		}
-
+		
 		for ( auto it = CLVP[j].begin();CLVP[j].end()!=it && it->first>=i ; ++it ) {
 			cand_pos_t k = it->first;
 			if(k==i) vp_ij = it->second; //second?
@@ -1404,7 +1404,7 @@ void trace_VP(const std::string& seq, const std::vector< cand_list_td1 >& CL, co
 	structure[i] = '[';
 	structure[j] = ']';
 	if(e==0) return;
-
+	
 	const pair_type ptype_closing = pair[S[i]][S[j]];
 
 	
@@ -2313,6 +2313,7 @@ energy_t compute_VP_internal(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_p
 energy_t compute_VP(cand_pos_t i, cand_pos_t j, cand_pos_t b_ij, cand_pos_t bp_ij, cand_pos_t Bp_ij, cand_pos_t B_ij, sparse_tree& sparse_tree, std::vector<energy_t> &dwi1, std::vector<energy_t> &dwvp, std::vector<energy_t> &WI_Bbp, short* S, short* S1,LocARNA::Matrix<energy_t> &VP, std::vector<cand_list_t> &CLVP, TraceArrows &taVP, const SparseMFEFold::Cand_comp& cand_comp , paramT* params){
 	energy_t m1 = INF, m2 = INF, m3 = INF, m4= INF, m5 = INF, m6 = INF, vp = INF;
 	const pair_type ptype_closing = pair[S[i]][S[j]];
+
 	if(sparse_tree.tree[i].parent->index > 0 && sparse_tree.tree[j].parent->index < sparse_tree.tree[i].parent->index && Bp_ij >= 0 && B_ij >= 0 && bp_ij < 0){
 		energy_t WI_ipus1_BPminus = dwi1[Bp_ij-1];
 		energy_t WI_Bplus_jminus = (j-1-(B_ij+1))> 4 ? WI_Bbp[j-1] : PUP_penalty*(j-1-(B_ij+1)+1);
@@ -2863,15 +2864,32 @@ void seqtoRNA(std::string &sequence){
     }
 }
 
-void validate_structure(std::string structure){
-	int count = 0;
+void validate_structure(std::string &seq, std::string &structure){
 	int n = structure.length();
-	for(int i = 0; i<n;++i){
-		if(structure[i] == '(') count++;
-		if(structure[i] == ')') count--;
+	std::vector<int> pairs;
+	for(int j = 0; j<n;++j){
+		if(structure[j] == '(') pairs.push_back(j);
+		if(structure[j] == ')'){
+			if(pairs.empty()){
+				std::cout << "Incorrect input: More left parentheses than right" << std::endl;
+				exit(0);
+			}
+			else {
+				int i = pairs.back();
+				pairs.pop_back();
+				if(seq[i] == 'A' && seq[j] == 'U'){}
+				else if (seq[i] == 'C' && seq[j] == 'G'){}
+				else if ((seq[i] == 'G' && seq[j] == 'C') || (seq[i] == 'G' && seq[j] == 'U')){}
+				else if ((seq[i] == 'U' && seq[j] == 'G') || (seq[i] == 'U' && seq[j] == 'A')){}
+				else{
+					std::cout << "Incorrect input: " << seq[i] << " does not pair with " << seq[j] << std::endl;
+					exit(0);
+				}
+			}
+		}
 	}
-	if(count !=0){
-		std::cout << "incorrect input as count is " << count << std::endl;
+	if(!pairs.empty()){
+		std::cout << "Incorrect input: More left parentheses than right" << std::endl;
 		exit(0);
 	}
 }
@@ -2947,7 +2965,6 @@ int main(int argc,char **argv) {
 		std::cout << restricted << std::endl;
 		exit(0);
 	}
-	validate_structure(restricted);
 
 	std::string file= args_info.paramFile_given ? parameter_file : "params/rna_DirksPierce09.par";
 	if(exists(file)){
@@ -2956,16 +2973,16 @@ int main(int argc,char **argv) {
 	else if (seq.find('T') != std::string::npos){
 		vrna_params_load_DNA_Mathews2004();
 	}
-
-	noGU = args_info.noGU_given;
-	// seqtoRNA(seq);
-	
-
 	bool verbose;
 	verbose = args_info.verbose_given;
 
 	bool mark_candidates;
 	mark_candidates = args_info.mark_candidates_given;
+
+	noGU = args_info.noGU_given;
+	seqtoRNA(seq);
+	validate_structure(seq,restricted);
+
 	sparse_tree tree(restricted,n);
 
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
@@ -2994,7 +3011,6 @@ int main(int argc,char **argv) {
 	}
 	
 	energy_t mfe = fold(sparsemfefold.seq_, tree,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.CLWMB_,sparsemfefold.CLVP_,sparsemfefold.CLBE_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.taVP_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.VP_, sparsemfefold.WVe_, sparsemfefold.WV_, sparsemfefold.dwvp_, sparsemfefold.WMB_,sparsemfefold.dwmbi_,sparsemfefold.WMBP_,sparsemfefold.WMBA_,sparsemfefold.WI_,sparsemfefold.dwi1_,sparsemfefold.WIP_,sparsemfefold.dwip1_,sparsemfefold.WI_Bbp,sparsemfefold.WIP_Bbp,sparsemfefold.WIP_Bp,sparsemfefold.WI_Bp,sparsemfefold.n_,sparsemfefold.garbage_collect_);		
-	// std::cout << mfe << std::endl;
 	std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.CLWMB_,sparsemfefold.CLBE_,sparsemfefold.CLVP_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.taVP_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.WI_Bbp,sparsemfefold.WIP_Bbp,sparsemfefold.WIP_Bp,sparsemfefold.WI_Bp,sparsemfefold.n_,tree, mark_candidates);
 	
 	std::ostringstream smfe;
@@ -3002,7 +3018,7 @@ int main(int argc,char **argv) {
 	std::cout << seq << std::endl;
 
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
-	// std::cout < " ("<<smfe.str()<<")"<<std::endl;
+
 	if (verbose) {	
 
 	std::cout <<std::endl;

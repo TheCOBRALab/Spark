@@ -46,9 +46,7 @@ config
 src/Makefile.in
 autom4te.cache
 Doc
-bash.sh
+*.sh
 bashStructure.sh
-out.txt
-out1.txt
-out2.txt
-rna.ps
+*.txt
+*.ps
