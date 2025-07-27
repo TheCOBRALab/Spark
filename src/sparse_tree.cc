@@ -204,7 +204,7 @@ class sparse_tree{
     
             // filling base case values
             for (int i=1; i<n; i++)
-                sparse_table[i-1][0] = (depthArr[i]>depthArr[i-1])?i-1:i;
+                sparse_table[i-1][0] = (depthArr[i]>depthArr[i-1])? i-1: i;
         
             //dp to fill sparse table
             for (int l=1; l<maxSize; l++){
@@ -279,6 +279,7 @@ class sparse_tree{
          * Returns whether there the area between i and j is weakly closed, specifically if all pairs in the [i,j] stay within [i,j]
         */
         bool weakly_closed(int i, int j){
+            if(i==1 && j==0) return 1; // May not be needed for Spark
             if((i > tree[i].pair && tree[i].pair > 0) || tree[j].pair> j) return 0;
             // if((tree[i].pair > i && tree[j].pair > j) ||(tree[i].pair < i && tree[j].pair < j && tree[i].pair != -1 && tree[j].pair != -1)) return 0;
             // if(depthArr[FAI[i]] == depthArr[FAI[j]] && tree[i].parent->index == tree[j].parent->index) return 1;
