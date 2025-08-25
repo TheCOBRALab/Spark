@@ -1916,14 +1916,14 @@ void trace_BE(const std::string& seq, const std::vector< cand_list_td1 >& CL, co
 		trace_WIP(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WI_lp1jm1,n,mark_candidates,l+1,j-1,WIP_Bp[j-1],tree);
 		return;
 	}
-	if(e == cp_penalty*((lp-i+1)) + BE_energy + WIP_Bp[l+1] + ap_penalty + 2*bp_penalty){
+	if(e == cp_penalty*((lp-i-1)) + BE_energy + WIP_Bp[l+1] + ap_penalty + 2*bp_penalty){
 		std::vector<energy_t> WI_lp1jm1;
 		WI_lp1jm1 = recompute_WIP(CL,CLWMB,n,l+1,j-1,tree.tree,tree.up);
 		trace_BE(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,n,mark_candidates,lp,ip,BE_energy,tree);
 		trace_WIP(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WI_lp1jm1,n,mark_candidates,l+1,j-1,WIP_Bbp[j-1],tree);
 		return;
 	}
-	if(e == WIP_Bbp[lp-1] + BE_energy + cp_penalty*((j-l+1)) + ap_penalty + 2*bp_penalty){
+	if(e == WIP_Bbp[lp-1] + BE_energy + cp_penalty*((j-l-1)) + ap_penalty + 2*bp_penalty){
 		std::vector<energy_t> WI_ip1lpm1;
 		WI_ip1lpm1 = recompute_WIP(CL,CLWMB,n,i+1,lp-1,tree.tree,tree.up);
 		trace_WIP(seq,CL,CLWMB,CLBE,CLVP,cand_comp,structure,params,S,S1,ta,taVP,WM,WM2,WI_Bbp,WIP_Bbp,WIP_Bp,WI_Bp,WI_ip1lpm1,n,mark_candidates,i+1,lp-1,WIP_Bbp[lp-1],tree);
@@ -2089,14 +2089,14 @@ energy_t compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, st
 
         // 4
     if (weakly_closed_ilp && empty_region_lip){
-        m4 = dwip1[lp-1] + BE_energy + cp_penalty * (ip-l+1) + ap_penalty + 2*bp_penalty;
+        m4 = dwip1[lp-1] + BE_energy + cp_penalty * (ip-l-1) + ap_penalty + 2*bp_penalty;
         val = std::min(val,m4);
     }
 
         // 5
     if (empty_region_ilp && weakly_closed_lip){
 		
-        m5 = ap_penalty + 2*bp_penalty + (cp_penalty * (lp-i+1)) + BE_energy + WIP_Bp[l+1];
+        m5 = ap_penalty + 2*bp_penalty + (cp_penalty * (lp-i-1)) + BE_energy + WIP_Bp[l+1];
         val = std::min(val,m5);
     }
 
@@ -2397,11 +2397,18 @@ energy_t compute_internal(cand_pos_t i, cand_pos_t j,cand_pos_t &best_k, cand_po
 	energy_t v_iloop = INF;
 	cand_pos_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
 	const pair_type ptype_closing = pair[S[i]][S[j]];
+	// cand_pos_t max_up=0;
+	// while(max_up<MAXLOOP+1){
+	// 	if(sparse_tree.up[i+1+max_up]>max_up) max_up++;
+	// 	else break;
+	// }
+	// max_k = std::min(max_k,i+1+max_up);
 	for ( cand_pos_t k=i+1; k<=max_k; k++) {
 		cand_pos_t k_mod=k%(MAXLOOP+1);
 		
 		energy_t cank = ((sparse_tree.up[k-1]>=(k-i-1))-1);
 		cand_pos_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
+		// min_l = std::max(min_l,j-1-sparse_tree.up[j-1]);
 		for (cand_pos_t l=j-1; l>=min_l; --l) {
 			assert(k-i+j-l-2<=MAXLOOP);
 			energy_t canl = (((sparse_tree.up[j-1]>=(j-l-1))-1) | cank);
@@ -3025,8 +3032,8 @@ int main(int argc,char **argv) {
 	std::ostringstream smfe;
 	smfe << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
 	std::cout << seq << std::endl;
-
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
+
 
 	if (verbose) {	
 
