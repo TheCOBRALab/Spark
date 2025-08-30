@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
-# set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \ -w \ -O3") # -flto link time optimizations
+
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
@@ -87,17 +87,11 @@ set(vienna_SOURCE
 )
 
 add_library(RNA STATIC ${vienna_SOURCE})
-# configure_file(RNA.pc.in RNA.pc @ONLY)
 
 target_include_directories(RNA PRIVATE .)
 
 add_executable(Spark ${spark_SOURCE})
 
-# add_executable(tests ${test_SOURCE})
-
 target_link_libraries(Spark PRIVATE RNA)
-
-# target_link_libraries(tests PRIVATE RNA)
-
 
 include_directories(src)

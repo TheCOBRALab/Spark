@@ -17,7 +17,7 @@ AlignConsecutiveBitFields:
   AcrossComments:  false
   AlignCompound:   false
   AlignFunctionDeclarations: false
-  AlignFunctionPointers: false
+  AlignFunctionPointers: true
   PadOperators:    false
 AlignConsecutiveDeclarations:
   Enabled:         false
@@ -114,7 +114,7 @@ BreakAfterAttributes: Leave
 BreakAfterJavaFieldAnnotations: false
 BreakAfterReturnType: None
 BreakArrays:     true
-BreakBeforeBinaryOperators: None
+BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeConceptDeclarations: Always
 BreakBeforeBraces: Attach
 BreakBeforeInlineASMColon: OnlyMultiline
@@ -125,7 +125,7 @@ BreakFunctionDefinitionParameters: false
 BreakInheritanceList: BeforeColon
 BreakStringLiterals: true
 BreakTemplateDeclarations: MultiLine
-ColumnLimit:     80
+ColumnLimit:     150
 CommentPragmas:  '^ IWYU pragma:'
 CompactNamespaces: false
 ConstructorInitializerIndentWidth: 4
@@ -167,7 +167,7 @@ IndentExternBlock: AfterExternBlock
 IndentGotoLabels: true
 IndentPPDirectives: None
 IndentRequiresClause: true
-IndentWidth:     2
+IndentWidth:     4
 IndentWrappedFunctionNames: false
 InsertBraces:    false
 InsertNewlineAtEOF: false
@@ -214,7 +214,7 @@ PenaltyReturnTypeOnItsOwnLine: 60
 PointerAlignment: Right
 PPIndentWidth:   -1
 QualifierAlignment: Leave
-ReferenceAlignment: Pointer
+ReferenceAlignment: Right
 ReflowComments:  Always
 RemoveBracesLLVM: false
 RemoveEmptyLinesInUnwrappedLines: false
