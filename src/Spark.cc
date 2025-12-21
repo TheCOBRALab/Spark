@@ -5,7 +5,7 @@
  * minimization algorithm (RNA folding equivalent to the Zuker
  * algorithm).
  *
- * The results are equivalent to RNAfold.
+ * The results are equivalent to HFold.
  */
 // #define NDEBUG
 #define debug 0
@@ -871,7 +871,6 @@ void recompute_WV(Spark &spark, cand_pos_t i, cand_pos_t max_j, sparse_tree &tre
                 wv = std::min(wv, spark.WVe_[k - 1] + v_kj + bp_penalty);
                 wv = std::min(wv, spark.WV_[k - 1] + v_kj + bp_penalty);
             }
-            // How do I do the VP one?
 
             for (auto it = spark.CLVP_[j].begin(); spark.CLVP_[j].end() != it; ++it) {
 

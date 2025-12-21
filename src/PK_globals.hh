@@ -15,10 +15,8 @@ double e_intP_penalty = 0.74; // 0.83;		// e_intP = 0.83 * e_int
 // Hosna, Nov. 2nd, 2011
 // changed the multiloop penalties to be the same as the simfold's values
 int a_penalty = 339; // The newest value is from DP09 //misc.multi_offset;//340;		//penalty for introducing a multiloop (3.4 Kcal/mol)
-int b_penalty =
-    3; // The newest value is from DP09 //misc.multi_helix_penalty; //40;			//penalty for base pair in a multiloop (0.4 Kcal/mol)
-int c_penalty =
-    2; // The newest value is from DP09 //misc.multi_free_base_penalty; //0;			//penalty for un-paired base in a multi-loop
+int b_penalty = 3; // The newest value is from DP09 //misc.multi_helix_penalty; //40;			//penalty for base pair in a multiloop (0.4 Kcal/mol)
+int c_penalty = 2; // The newest value is from DP09 //misc.multi_free_base_penalty; //0;			//penalty for un-paired base in a multi-loop
 
 int ap_penalty = 341; // 340;			//penalty for introducing a multiloop that spans a band (3.4 Kcal/mol)
 int bp_penalty = 56;  // 40;			//base pair penalty for a multiloop that spans a band (0.4 Kcal/mol)

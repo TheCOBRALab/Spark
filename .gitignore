@@ -50,3 +50,4 @@ Doc
 bashStructure.sh
 *.txt
 *.ps
+.DS_Store
